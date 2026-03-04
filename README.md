@@ -1,57 +1,96 @@
-# AnyGen Skills
+# AnyGen AI Skills
 
-[中文](./README_zh.md)
+> AI Skills for [OpenClaw](https://github.com/openclaw/openclaw) / Claude Code / Cursor
 
-A collection of Claude Code skills for [AnyGen](https://www.anygen.io) - AI-powered content generation platform.
+A collection of AI-powered content generation skills using AnyGen and financial data tools.
 
-## Available Skills
+## Skills Included
 
-| Skill | Description | Status |
-|-------|-------------|--------|
-| [task-creator](./task-creator/) | Create and download AnyGen AI tasks (slide, doc, chat, etc.) | ✅ Ready |
+### 📊 Task Creator
+Generate various content using AnyGen API:
+- **Slides** (PPT) — Professional presentations
+- **Documents** — Reports, papers, documentation
+- **Websites** — Landing pages, portfolios
+- **Storybooks** — Visual narratives
+- **Data Analysis** — Charts and insights
+
+### 📈 Finance Report
+Professional equity research PDF reports:
+- **Earnings Analysis** — Post-earnings deep dives
+- **Earnings Preview** — Pre-earnings scenario modeling
+- **Sector Scan** — Cross-sector comparisons
+- **Initiating Coverage** — Full stock deep dives
+- **Valuation Analysis** — DCF, comps, multiples
 
 ## Installation
 
-Copy the desired skill folder to your Claude Code skills directory:
+### OpenClaw
+```bash
+# Clone to skills directory
+git clone https://github.com/AnyGenIO/anygen-skills.git ~/.openclaw/skills/anygen
+```
+
+### Claude Code
+```bash
+git clone https://github.com/AnyGenIO/anygen-skills.git ~/.claude/skills/anygen
+```
+
+## Configuration
+
+### AnyGen API Key (required for Task Creator)
 
 ```bash
-# Copy task-creator skill
-cp -r task-creator ~/.claude/my_skills/anygen-task-creator
+# Option 1: Config file
+python3 task-creator/scripts/anygen.py config set api_key "sk-xxx"
+
+# Option 2: Environment variable
+export ANYGEN_API_KEY="sk-xxx"
 ```
 
-Or clone the entire repository:
+Get your API key at [anygen.io](https://www.anygen.io) → Setting → Integration.
 
-```bash
-git clone https://github.com/PagoGen/anygen-skills.git ~/.claude/my_skills/anygen-skills
-```
+### Finance Report
 
-## Prerequisites
+Requires `fin_*` data tools (built into OpenClaw). No additional configuration needed.
 
-- Python 3
-- requests library: `pip3 install requests`
-- AnyGen API Key ([Get one here](https://www.anygen.io) → Setting → Integration)
-
-## Repository Structure
+## Usage
 
 ```
-anygen-skills/
-├── README.md              # This file
-├── README_zh.md           # Chinese version
-├── task-creator/          # Task creation skill
-│   ├── README.md
-│   ├── README_zh.md
+# Task Creator
+"Make a PPT about AI trends in 2026"
+"Generate a document summarizing our Q1 results"
+
+# Finance Report  
+"Analyze NVDA earnings"
+"Do a sector scan of AI semiconductor stocks"
+"Give me a full coverage report on AVGO"
+```
+
+## Structure
+
+```
+anygen/
+├── SKILL.md                    # Skill router
+├── task-creator/               # AnyGen content generation
 │   ├── skill.md
-│   └── scripts/
-│       └── anygen.py
-└── [future-skill]/        # More skills coming soon
+│   └── scripts/anygen.py
+└── finance-report/             # Equity research PDF reports
+    ├── skill.md
+    ├── config/output.yaml
+    ├── templates/report-style.css
+    ├── workflows/
+    │   ├── pdf-output.md
+    │   ├── earnings-analysis.md
+    │   ├── earnings-preview.md
+    │   └── sector-scan.md
+    └── references/
+        ├── initiating-coverage.md
+        ├── competitive-analysis.md
+        ├── valuation-methodologies.md
+        ├── anti-bias.md
+        ├── evidence-hierarchy.md
+        └── variant-view.md
 ```
-
-## Contributing
-
-Contributions are welcome! Feel free to:
-- Report issues
-- Submit pull requests
-- Suggest new skills
 
 ## License
 

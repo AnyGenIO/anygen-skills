@@ -1,1 +1,7 @@
 __pycache__/
+*.pyc
+.env
+*.pdf
+*.html
+node_modules/
+.venv/

@@ -1,0 +1,21 @@
+# 输出配置
+# 修改此文件自定义报告品牌、语言、输出方式
+
+language: zh-CN                 # zh-CN | en-US
+
+brand:
+  name: "ShangClaw Research"
+  subtitle: "权益研究"
+  accent_color: "#0d1b3e"
+
+report:
+  save_dir: ~/reports
+  workspace_dir: ~/.openclaw/workspace
+  absolute_prefix: /home/chenshangshang  # 用于文件发送时的绝对路径前缀
+
+pdf:
+  engine: chromium              # chromium | weasyprint | wkhtmltopdf
+  flags: "--headless --no-sandbox --disable-gpu --print-to-pdf-no-header --no-pdf-header-footer"
+
+# 报告中的固定文本
+disclaimer: "本报告由 AI 投研引擎生成，仅供内部决策参考，不构成任何证券投资建议或买卖要约。"
