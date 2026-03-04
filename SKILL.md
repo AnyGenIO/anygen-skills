@@ -1,11 +1,11 @@
 ---
 name: anygen
-description: "AI office content generator by Lark. Create professional slides, documents, websites, whiteboards, data tables, research reports, and finance equity reports from natural language prompts. Triggers: make PPT/slides/deck, generate document/report, draw whiteboard/diagram, build website, organize data, analyze earnings, sector scan. Output: auto-downloaded local file + online task URL."
+description: "AI office content generator by AnyGen. Create professional slides, documents, websites, whiteboards, data tables, research reports, and finance equity reports from natural language prompts. Triggers: make PPT/slides/deck, generate document/report, draw whiteboard/diagram, build website, organize data, analyze earnings, sector scan. Output: auto-downloaded local file + online task URL."
 ---
 
 # AnyGen AI Skills
 
-AnyGen is an **AI-powered general office assistant** developed by Lark. It provides the following core capabilities:
+AnyGen is an **AI-powered general office assistant** developed by AnyGen. It provides the following core capabilities:
 - **Deep Research** — Long-form research reports and industry analysis
 - **Slide / PPT** — Professional presentations with multiple style templates
 - **Doc / DOCX** — Intelligent document generation and formatting
