@@ -5,6 +5,7 @@ AnyGen OpenAPI Client
 Usage:
     python3 anygen.py create --api-key sk-xxx --operation slide --prompt "..."
     python3 anygen.py poll --api-key sk-xxx --task-id task_xxx
+    python3 anygen.py status --api-key sk-xxx --task-id task_xxx [--json]
     python3 anygen.py download --api-key sk-xxx --task-id task_xxx --output ./
     python3 anygen.py run --api-key sk-xxx --operation slide --prompt "..." --output ./
 """
@@ -27,7 +28,8 @@ except ImportError:
 
 API_BASE = "https://www.anygen.io"
 POLL_INTERVAL = 3  # seconds
-MAX_POLL_TIME = 600  # 10 minutes
+MAX_POLL_TIME = 900  # 15 minutes
+OPENCLAW_WORKSPACE = Path.home() / ".openclaw" / "workspace"
 CONFIG_DIR = Path.home() / ".config" / "anygen"
 CONFIG_FILE = CONFIG_DIR / "config.json"
 ENV_API_KEY = "ANYGEN_API_KEY"
@@ -254,9 +256,16 @@ def query_task(api_key, task_id, extra_headers=None):
         return None
 
 
-def poll_task(api_key, task_id, max_time=MAX_POLL_TIME, extra_headers=None, output_dir=None):
+def poll_task(api_key, task_id, max_time=MAX_POLL_TIME, extra_headers=None, output_dir=None, media=False):
     """Poll task until completion or failure. Auto-downloads file if output_dir is provided."""
     log_info(f"Polling task status: {task_id}")
+
+    # When media mode is on, default output to workspace
+    if media and not output_dir:
+        if OPENCLAW_WORKSPACE.is_dir():
+            output_dir = str(OPENCLAW_WORKSPACE)
+        else:
+            output_dir = "."
 
     start_time = time.time()
     last_progress = -1
@@ -295,11 +304,15 @@ def poll_task(api_key, task_id, max_time=MAX_POLL_TIME, extra_headers=None, outp
                 local_path = _download_to_local(file_url, output.get("file_name"), output_dir)
                 if local_path:
                     print(f"[RESULT] Local file: {local_path}")
+                    if media:
+                        print(f"MEDIA:{local_path}")
             elif file_url:
                 # No output_dir, download to current directory
                 local_path = _download_to_local(file_url, output.get("file_name"), ".")
                 if local_path:
                     print(f"[RESULT] Local file: {local_path}")
+                    if media:
+                        print(f"MEDIA:{local_path}")
 
             print(f"[RESULT] Task URL: {task_url}")
             return task
@@ -337,8 +350,15 @@ def _download_to_local(file_url, file_name, output_dir):
     return str(file_path)
 
 
-def download_file(api_key, task_id, output_dir, extra_headers=None):
+def download_file(api_key, task_id, output_dir, extra_headers=None, media=False):
     """Download the generated file. Returns local file path or False."""
+    # When media mode is on, default output to workspace
+    if media and not output_dir:
+        if OPENCLAW_WORKSPACE.is_dir():
+            output_dir = str(OPENCLAW_WORKSPACE)
+        else:
+            output_dir = "."
+
     # First query task to get file URL
     task = query_task(api_key, task_id, extra_headers)
     if not task:
@@ -360,12 +380,56 @@ def download_file(api_key, task_id, output_dir, extra_headers=None):
     local_path = _download_to_local(file_url, file_name, output_dir)
     if local_path:
         print(f"[RESULT] Local file: {local_path}")
+        if media:
+            print(f"MEDIA:{local_path}")
         print(f"[RESULT] Task URL: {task_url}")
         return local_path
     return False
 
 
-def run_full_workflow(api_key, operation, prompt, output_dir, extra_headers=None, style=None, **kwargs):
+def query_task_status(api_key, task_id, extra_headers=None, as_json=False):
+    """Single non-blocking query of task status. Returns task dict or None."""
+    task = query_task(api_key, task_id, extra_headers)
+    if not task:
+        return None
+
+    status = task.get("status")
+    progress = task.get("progress", 0)
+    output = task.get("output", {})
+
+    if as_json:
+        result = {
+            "task_id": task_id,
+            "status": status,
+            "progress": progress,
+        }
+        if status == "completed":
+            if output.get("file_url"):
+                result["file_url"] = output["file_url"]
+            if output.get("file_name"):
+                result["file_name"] = output["file_name"]
+            result["task_url"] = output.get("task_url", f"{API_BASE}/task/{task_id}")
+        elif status == "failed":
+            result["error"] = task.get("error", "Unknown error")
+        print(json.dumps(result, ensure_ascii=False))
+    else:
+        parts = [f"[STATUS] task_id={task_id} status={status} progress={progress}"]
+        if status == "completed" and output.get("file_name"):
+            parts.append(f"file_name={output['file_name']}")
+        if status == "completed" and output.get("file_url"):
+            parts.append(f"file_url={output['file_url']}")
+        if status == "completed":
+            task_url = output.get("task_url", f"{API_BASE}/task/{task_id}")
+            parts.append(f"task_url={task_url}")
+        if status == "failed":
+            parts.append(f"error={task.get('error', 'Unknown error')}")
+        print(" ".join(parts))
+
+    return task
+
+
+def run_full_workflow(api_key, operation, prompt, output_dir, extra_headers=None, style=None,
+                      media=False, max_time=MAX_POLL_TIME, **kwargs):
     """Run the full workflow: create -> poll -> auto download."""
     # Create task
     task_id = create_task(api_key, operation, prompt, extra_headers=extra_headers, style=style, **kwargs)
@@ -373,7 +437,8 @@ def run_full_workflow(api_key, operation, prompt, output_dir, extra_headers=None
         return False
 
     # Poll for completion (auto-downloads if output_dir is provided)
-    task = poll_task(api_key, task_id, extra_headers=extra_headers, output_dir=output_dir or ".")
+    task = poll_task(api_key, task_id, max_time=max_time, extra_headers=extra_headers,
+                     output_dir=output_dir or ".", media=media)
     if not task or task.get("status") != "completed":
         return False
 
@@ -430,12 +495,21 @@ Examples:
     add_common_args(poll_parser)
     poll_parser.add_argument("--task-id", required=True, help="Task ID to poll")
     poll_parser.add_argument("--output", help="Output directory for auto-download (default: current directory)")
+    poll_parser.add_argument("--max-time", type=int, default=MAX_POLL_TIME, help=f"Max poll time in seconds (default: {MAX_POLL_TIME})")
+    poll_parser.add_argument("--media", action="store_true", help="Enable MEDIA: protocol output for IM file delivery")
+
+    # Status command (non-blocking single query)
+    status_parser = subparsers.add_parser("status", help="Query task status once (non-blocking)")
+    add_common_args(status_parser)
+    status_parser.add_argument("--task-id", required=True, help="Task ID to query")
+    status_parser.add_argument("--json", action="store_true", dest="as_json", help="Output as JSON")
 
     # Download command
     download_parser = subparsers.add_parser("download", help="Download generated file")
     add_common_args(download_parser)
     download_parser.add_argument("--task-id", required=True, help="Task ID")
     download_parser.add_argument("--output", required=True, help="Output directory")
+    download_parser.add_argument("--media", action="store_true", help="Enable MEDIA: protocol output for IM file delivery")
 
     # Run command (full workflow)
     run_parser = subparsers.add_parser("run", help="Run full workflow: create -> poll -> download")
@@ -454,6 +528,8 @@ Examples:
     run_parser.add_argument("--smart-draw-format", "-d", choices=["excalidraw", "drawio"], default="drawio",
                            help="SmartDraw export format (default: drawio)")
     run_parser.add_argument("--output", help="Output directory (optional)")
+    run_parser.add_argument("--max-time", type=int, default=MAX_POLL_TIME, help=f"Max poll time in seconds (default: {MAX_POLL_TIME})")
+    run_parser.add_argument("--media", action="store_true", help="Enable MEDIA: protocol output for IM file delivery")
 
     # Config command
     config_parser = subparsers.add_parser("config", help="Manage configuration")
@@ -563,14 +639,22 @@ Examples:
 
     elif args.command == "poll":
         output_dir = getattr(args, 'output', None) or "."
-        task = poll_task(api_key, args.task_id, extra_headers=extra_headers, output_dir=output_dir)
+        task = poll_task(api_key, args.task_id, max_time=args.max_time,
+                         extra_headers=extra_headers, output_dir=output_dir, media=args.media)
         if task and task.get("status") == "completed":
             sys.exit(0)
         else:
             sys.exit(1)
 
+    elif args.command == "status":
+        task = query_task_status(api_key, args.task_id, extra_headers=extra_headers, as_json=args.as_json)
+        if task:
+            sys.exit(0)
+        else:
+            sys.exit(1)
+
     elif args.command == "download":
-        success = download_file(api_key, args.task_id, args.output, extra_headers=extra_headers)
+        success = download_file(api_key, args.task_id, args.output, extra_headers=extra_headers, media=args.media)
         sys.exit(0 if success else 1)
 
     elif args.command == "run":
@@ -587,7 +671,9 @@ Examples:
             doc_format=args.doc_format,
             files=args.files,
             style=args.style,
-            smart_draw_format=args.smart_draw_format
+            smart_draw_format=args.smart_draw_format,
+            media=args.media,
+            max_time=args.max_time
         )
         sys.exit(0 if success else 1)
 

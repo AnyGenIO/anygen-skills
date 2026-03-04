@@ -15,8 +15,6 @@ AnyGen is an **AI-powered general assistant** with the following capabilities:
 - **Storybook** — Storyboard / whiteboard creation
 - **SmartDraw** — Diagram generation (Excalidraw/DrawIO)
 
-Create AI generation tasks via AnyGen OpenAPI. Files are auto-downloaded locally after completion.
-
 ## When to use
 
 The following scenarios should **default to AnyGen**:
@@ -55,231 +53,175 @@ If you don't have an API Key:
 Save the API Key to a config file to avoid entering it every time:
 
 ```bash
-# Save API Key
 python3 ~/.openclaw/skills/anygen/task-manager/scripts/anygen.py config set api_key "sk-xxx"
-
-# View current config
-python3 ~/.openclaw/skills/anygen/task-manager/scripts/anygen.py config get
-
-# View config file path
-python3 ~/.openclaw/skills/anygen/task-manager/scripts/anygen.py config path
 ```
 
 Config file location: `~/.config/anygen/config.json`
 
 **API Key Priority**: Command line argument > Environment variable `ANYGEN_API_KEY` > Config file
 
-## Required User Inputs
+## Supported Operation Types
 
-| Field | Description | Required |
-|-------|-------------|----------|
-| API Key | AnyGen API Key, format `sk-xxx` | Yes |
-| Operation | Operation type (see table below) | Yes |
-| Prompt | Content description/prompt | Yes |
+| Operation | Description | File Download |
+|-----------|-------------|---------------|
+| `slide` | Slides / PPT | Yes |
+| `doc` | Document / DOCX | Yes |
+| `smart_draw` | Diagram (DrawIO/Excalidraw) | Yes (requires render to PNG) |
+| `chat` | General mode (SuperAgent) | No, task URL only |
+| `storybook` | Storybook / whiteboard | No, task URL only |
+| `data_analysis` | Data analysis | No, task URL only |
+| `website` | Website development | No, task URL only |
 
-### Supported Operation Types
-
-| Operation | Description |
-|-----------|-------------|
-| `chat` | General mode (SuperAgent) |
-| `slide` | Slides mode (SuperAgent Slides) |
-| `doc` | Doc mode (SuperAgent Doc) |
-| `storybook` | Storybook mode |
-| `data_analysis` | Data analysis mode |
-| `website` | Website development mode |
-| `smart_draw` | Diagram mode |
-
-**Note**: `slide`, `doc`, and `smart_draw` support file download. Other operations only return a task URL for online viewing.
+---
 
 ## Skill Invocation Flow
 
 ### Step 1: Collect Required Information
 
-Before execution, **MUST ask the user the following questions** to ensure generation quality:
+Before execution, **MUST ask the user**:
 
-#### 1.1 Required Fields (all task types)
+**Required fields:**
+1. **API Key** — `sk-xxx` format. If not configured, guide user to https://www.anygen.io/home → Setting → Integration
+2. **Operation** — slide / doc / chat / smart_draw / data_analysis / website / storybook
+3. **Prompt** — Content description
 
-```
-Please provide the following information:
+**Slide-specific (ask when operation=slide):**
+- **Style** — business / minimalist / tech / academic / creative / data-driven / nature / dark
+- **Page count** — Brief 5-8 / Standard 10-15 / Detailed 15-25 (default: AI decides)
+- **Aspect ratio** — 16:9 (projection) or 4:3 (printing)
 
-[Required]
-1. API Key: Your AnyGen API Key (format: sk-xxx)
-   - If you don't have one, visit https://www.anygen.io/home to register and obtain one
-   - Path: Log in → Setting → Integration → Generate API Key
-2. Generation type: slide (PPT) / doc (document) / chat (conversation) / data_analysis / website / storybook (whiteboard)
-3. Content description: Describe what you want to generate
-```
-
-#### 1.2 Slide (PPT) Specific Questions
-
-When the user chooses to create a **slide/PPT**, **MUST additionally ask**:
-
-```
-To generate a PPT that matches your expectations, please select or describe the following:
-
-[Style] Choose from the following styles, or describe your preferred style:
-  Business Formal (business)    — Annual reviews, client proposals, business plans
-  Minimalist Modern (minimalist) — Product launches, project summaries, internal sharing
-  Tech Style (tech)             — Technical proposals, architecture design, R&D reports
-  Academic (academic)           — Thesis defense, academic reports, research presentations
-  Creative (creative)           — Marketing campaigns, brand promotions, team events
-  Data-Driven (data-driven)     — Data reports, analytics summaries, operations reviews
-  Nature Fresh (nature)         — Education, training, public interest, cultural sharing
-  Dark Mode (dark)              — Product demos, tech conferences, launch events
-
-[Page Count] How many pages? (Default: AI decides based on content, typically 8-15)
-  - Suggestion: Brief report 5-8 / Standard presentation 10-15 / Detailed proposal 15-25
-
-[Aspect Ratio] 16:9 (default, for projection) or 4:3 (for printing)
-```
-
-#### 1.3 Optional Parameters
-
-```
-[Recommended — significantly improves quality]
-- Reference files: Do you have reference materials? e.g.:
-  - Existing PPT/documents for style reference
-  - Related PDFs, images, text materials
-  - Company logo or brand assets
-  (Supported formats: PDF, PNG, JPG, DOCX, PPTX, TXT)
-
-[Other optional]
+**Optional:**
+- Reference files (PDF, PNG, JPG, DOCX, PPTX, TXT)
 - Language: zh-CN (default) or en-US
-- PPT template: business, education, etc.
 - Document format: docx (default) or pdf
-```
 
-> **Tip**: Style description and reference files are not mandatory, but providing them helps AnyGen generate content that better matches your expectations.
-
-### Step 2: Create Task
+### Step 2: Create task
 
 ```bash
 python3 ~/.openclaw/skills/anygen/task-manager/scripts/anygen.py create \
-  --api-key "sk-xxx" \
   --operation slide \
   --prompt "A presentation about the history of artificial intelligence" \
-  --language zh-CN \
-  --slide-count 10 \
-  --ratio "16:9" \
-  --style "tech-style, minimalist modern" \
-  --file ./reference.pdf
+  --style "business formal"
+# → Task ID: task_abc123xyz
 ```
 
-#### Create Task Parameters
+Save the returned `task_id` for subsequent steps.
+
+**All `create` parameters:**
 
 | Parameter | Short | Description | Required |
 |-----------|-------|-------------|----------|
-| --api-key | -k | API Key | Yes |
-| --operation | -o | slide or doc | Yes |
+| --operation | -o | Operation type (see table above) | Yes |
 | --prompt | -p | Content description | Yes |
-| --language | -l | Language (zh-CN/en-US) | No |
+| --api-key | -k | API Key (omit if configured) | No |
+| --language | -l | zh-CN / en-US | No |
 | --slide-count | -c | Number of PPT pages | No |
 | --template | -t | PPT template | No |
-| --ratio | -r | PPT ratio (16:9/4:3) | No |
-| --doc-format | -f | Document format (docx/pdf) | No |
-| --file | | Attachment file path (can be used multiple times) | No |
-| --style | -s | Style preference (e.g., 'business formal', 'minimalist modern') | No |
-| --smart-draw-format | -d | SmartDraw export format: excalidraw or drawio (default: drawio) | No |
+| --ratio | -r | 16:9 / 4:3 | No |
+| --doc-format | -f | docx / pdf | No |
+| --file | | Attachment file path (repeatable) | No |
+| --style | -s | Style preference | No |
+| --smart-draw-format | -d | excalidraw / drawio (default: drawio) | No |
 
-### Step 3: Poll Task Status
+### Step 3: Check progress — call `status` periodically and report to user
 
-After successful creation, a task_id will be returned. Use the following command to poll:
+`status` is a **non-blocking single query** — call it, get the result, return immediately.
 
 ```bash
-python3 ~/.openclaw/skills/anygen/task-manager/scripts/anygen.py poll \
-  --api-key "sk-xxx" \
-  --task-id "task_abc123xyz" \
-  --output ./output/
+python3 ~/.openclaw/skills/anygen/task-manager/scripts/anygen.py status \
+  --task-id task_abc123xyz
+# → [STATUS] task_id=task_abc123xyz status=processing progress=60
+
+# JSON output mode:
+python3 ~/.openclaw/skills/anygen/task-manager/scripts/anygen.py status \
+  --task-id task_abc123xyz --json
+# → {"task_id": "task_abc123xyz", "status": "processing", "progress": 60}
 ```
 
-The script will automatically poll until the task completes or fails, querying every 3 seconds. **When completed, the file is automatically downloaded.**
+When `status=completed`, proceed to Step 4. When `status=failed`, report the error to user.
 
-### Step 4: Download File (Automatic)
+**Progress reporting rules — you MUST follow:**
 
-When using `poll` or `run` command with `--output`, the file will be **automatically downloaded** after task completion. Do NOT give the user the raw `file_url` — the script handles the download and returns the local file path.
+1. Call `status` every **10 seconds** to poll internally
+2. Only notify the user at **milestone progress points**: 25%, 50%, 75%, 90%, and completion. Do NOT report every small change — this is a long-running task (up to 15 min)
+3. Example user-facing messages at milestones:
+   - 25% → "AnyGen is generating content outline..."
+   - 50% → "Content generated, now designing layout..."
+   - 75% → "Styling and polishing..."
+   - 90% → "Almost done, finalizing..."
+4. **Progress may stay at the same percentage for several minutes.** This is normal — AnyGen performs deep generation (content research, layout design, style rendering) at certain stages. Do NOT assume the task is stuck. Only treat `status=failed` as an error.
 
-If you need to manually download:
+### Step 4: Download file
 
 ```bash
 python3 ~/.openclaw/skills/anygen/task-manager/scripts/anygen.py download \
-  --api-key "sk-xxx" \
-  --task-id "task_abc123xyz" \
-  --output ./output/
+  --task-id task_abc123xyz --output ./output/
 ```
 
-### Step 5: Render Diagram to PNG (smart_draw only)
-
-**IMPORTANT**: When the operation is `smart_draw`, the downloaded file (.xml or .json) is a diagram source file, NOT an image. You **MUST** run `render-diagram.sh` to render it to PNG after downloading.
-
-```bash
-# Determine the type based on --smart-draw-format used (default: drawio)
-# drawio -> downloaded .xml file
-# excalidraw -> downloaded .json file
-
-bash ~/.openclaw/skills/anygen/task-manager/scripts/render-diagram.sh drawio ./output/diagram.xml ./output/diagram.png
-
-# Or for excalidraw format:
-bash ~/.openclaw/skills/anygen/task-manager/scripts/render-diagram.sh excalidraw ./output/diagram.json ./output/diagram.png
-```
-
-Dependencies (Node.js, Playwright, Chromium) are auto-installed on first run. Only Node.js (v18+) is required to be pre-installed.
-
-## One-Click Execution (Create + Poll + Auto Download)
-
-```bash
-# If API Key is already configured, --api-key parameter can be omitted
-python3 ~/.openclaw/skills/anygen/task-manager/scripts/anygen.py run \
-  --operation slide \
-  --prompt "A presentation about the history of artificial intelligence" \
-  --style "business formal" \
-  --file ./company_logo.png \
-  --output ./output/
-```
-
-The `run` command will automatically:
-1. Create the task
-2. Poll and wait for completion
-3. **Automatically download the generated file locally**
-4. **For `smart_draw` only**: You MUST then run `render-diagram.sh` (see Step 5) to convert the downloaded source file to PNG. The PNG is the final deliverable, not the .xml/.json file.
-
-## Output Behavior
-
-**IMPORTANT**: When the task completes, return to the user:
-- `file`: Local file path of the downloaded file (auto-downloaded from file_url)
-- `task_url`: The AnyGen task URL for online viewing/editing
-
-**Do NOT** return `file_url` to the user. The script auto-downloads the file and provides the local path instead.
-
-**For `smart_draw`**: The final output is the **rendered PNG image**, not the downloaded .xml/.json source file. Always return the PNG path to the user.
-
-### Task Created Successfully
+**Expected output:**
 
 ```
-[INFO] Creating task...
-[SUCCESS] Task created successfully!
-Task ID: task_abc123xyz
-```
-
-### Polling Progress + Auto Download
-
-```
-[INFO] Querying task status: task_abc123xyz
-[PROGRESS] Status: processing, Progress: 30%
-[PROGRESS] Status: processing, Progress: 60%
-[PROGRESS] Status: processing, Progress: 90%
-[SUCCESS] Task completed!
-[INFO] Downloading file...
 [SUCCESS] File saved: ./output/AI_History.pptx
 [RESULT] Local file: ./output/AI_History.pptx
 [RESULT] Task URL: https://www.anygen.io/task/task_abc123xyz
 ```
 
-### Task Failed
+### Step 5: SmartDraw only — render to PNG
 
+> **Skip this step** unless operation is `smart_draw`.
+
+The downloaded file (.xml/.json) is a diagram source, NOT an image. You **MUST** render it to PNG:
+
+```bash
+bash ~/.openclaw/skills/anygen/task-manager/scripts/render-diagram.sh drawio ./output/diagram.xml ./output/diagram.png
+# Or for excalidraw:
+bash ~/.openclaw/skills/anygen/task-manager/scripts/render-diagram.sh excalidraw ./output/diagram.json ./output/diagram.png
 ```
-[ERROR] Task failed!
-Error message: Generation timeout
+
+Dependencies are auto-installed on first run. Only Node.js (v18+) is required.
+
+### Step 6: Return results to user
+
+**IMPORTANT — what to tell the user:**
+- **Local file path** — from `[RESULT] Local file:` line (for `smart_draw`, return the rendered PNG path)
+- **Task URL** — from `[RESULT] Task URL:` line, for online viewing/editing
+
+**Do NOT** return `file_url` to the user. The script auto-downloads the file.
+
+---
+
+## Alternative: Blocking `run` command
+
+> For simple scripts or CLI usage where blocking is acceptable. **Not recommended for AI agents** — prefer the non-blocking flow above.
+
+The `run` command combines create + poll + download in one blocking call:
+
+```bash
+python3 ~/.openclaw/skills/anygen/task-manager/scripts/anygen.py run \
+  --operation slide \
+  --prompt "A presentation about the history of artificial intelligence" \
+  --style "business formal" \
+  --output ./output/ \
+  --max-time 900
 ```
+
+This blocks until the task completes (up to `--max-time` seconds). Accepts the same parameters as `create`, plus `--output`, `--max-time`, and `--media`.
+
+## Advanced: IM File Delivery (MEDIA: Protocol)
+
+When running in an **IM context** (e.g., Feishu/Lark bot with OpenClaw), add `--media` to `run`/`poll`/`download`:
+
+```bash
+python3 ~/.openclaw/skills/anygen/task-manager/scripts/anygen.py run \
+  --operation slide --prompt "..." --media
+```
+
+Behavior:
+- If `~/.openclaw/workspace/` exists (OpenClaw environment), files are saved there; otherwise saved to `--output` or current directory
+- On completion, the script outputs `MEDIA:/absolute/path/to/file`
+- Send this `MEDIA:` line as a **separate short message** so the framework delivers the file
+
+---
 
 ## Error Handling
 
@@ -302,7 +244,7 @@ Error message: Generation timeout
 
 ## Notes
 
-- Maximum execution time per task is 10 minutes
+- Maximum execution time per task is 15 minutes (customizable via `--max-time`)
 - Download link is valid for 24 hours
 - Single attachment file should not exceed 10MB (after Base64 encoding)
 - Polling interval is 3 seconds
