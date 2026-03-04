@@ -6,7 +6,7 @@ A collection of AI-powered content generation skills using AnyGen and financial 
 
 ## Skills Included
 
-### 📊 Task Creator
+### 📊 Task Manager
 Generate various content using AnyGen API:
 - **Slides** (PPT) — Professional presentations
 - **Documents** — Reports, papers, documentation
@@ -37,17 +37,17 @@ git clone https://github.com/AnyGenIO/anygen-skills.git ~/.claude/skills/anygen
 
 ## Configuration
 
-### AnyGen API Key (required for Task Creator)
+### AnyGen API Key (required for Task Manager)
 
 ```bash
 # Option 1: Config file
-python3 task-creator/scripts/anygen.py config set api_key "sk-xxx"
+python3 task-manager/scripts/anygen.py config set api_key "sk-xxx"
 
 # Option 2: Environment variable
 export ANYGEN_API_KEY="sk-xxx"
 ```
 
-Get your API key at [anygen.io](https://www.anygen.io) → Setting → Integration.
+Get your API key at [anygen.io/home](https://www.anygen.io/home) → Setting → Integration.
 
 ### Finance Report
 
@@ -56,9 +56,12 @@ Requires `fin_*` data tools (built into OpenClaw). No additional configuration n
 ## Usage
 
 ```
-# Task Creator
-"Make a PPT about AI trends in 2026"
-"Generate a document summarizing our Q1 results"
+# Task Manager
+"Make a product roadmap PPT"
+"Draw a user journey whiteboard"
+"Write an AI industry deep research report"
+"Organize this data into a table"
+"Make a quarterly review slide deck"
 
 # Finance Report  
 "Analyze NVDA earnings"
@@ -71,7 +74,7 @@ Requires `fin_*` data tools (built into OpenClaw). No additional configuration n
 ```
 anygen/
 ├── SKILL.md                    # Skill router
-├── task-creator/               # AnyGen content generation
+├── task-manager/               # AnyGen content generation
 │   ├── skill.md
 │   └── scripts/anygen.py
 └── finance-report/             # Equity research PDF reports

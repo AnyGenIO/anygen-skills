@@ -82,7 +82,7 @@ def log_error(msg):
 
 
 def log_progress(status, progress):
-    print(f"[PROGRESS] 状态: {status}, 进度: {progress}%")
+    print(f"[PROGRESS] Status: {status}, Progress: {progress}%")
 
 
 def format_timestamp(ts):
@@ -139,7 +139,7 @@ def encode_file(file_path):
 def create_task(api_key, operation, prompt, language=None, slide_count=None,
                 template=None, ratio=None, doc_format=None, files=None, extra_headers=None, style=None):
     """Create an async generation task."""
-    log_info("创建任务中...")
+    log_info("Creating task...")
 
     # Build auth token
     auth_token = api_key if api_key.startswith("Bearer ") else f"Bearer {api_key}"
@@ -147,8 +147,8 @@ def create_task(api_key, operation, prompt, language=None, slide_count=None,
     # Enhance prompt with style if provided
     final_prompt = prompt
     if style:
-        final_prompt = f"{prompt}\n\n风格要求: {style}"
-        log_info(f"已添加风格要求: {style}")
+        final_prompt = f"{prompt}\n\nStyle requirement: {style}"
+        log_info(f"Style applied: {style}")
 
     # Build request body
     body = {
@@ -180,7 +180,7 @@ def create_task(api_key, operation, prompt, language=None, slide_count=None,
         for file_path in files:
             try:
                 encoded_files.append(encode_file(file_path))
-                log_info(f"已添加附件: {file_path}")
+                log_info(f"Attachment added: {file_path}")
             except FileNotFoundError as e:
                 log_error(str(e))
                 return None
@@ -194,35 +194,35 @@ def create_task(api_key, operation, prompt, language=None, slide_count=None,
 
     # Send request
     try:
-        log_info(f"请求 URL: {API_BASE}/v1/openapi/tasks")
+        log_info(f"Request URL: {API_BASE}/v1/openapi/tasks")
         if extra_headers:
-            log_info(f"额外 Headers: {extra_headers}")
+            log_info(f"Extra headers: {extra_headers}")
         response = requests.post(
             f"{API_BASE}/v1/openapi/tasks",
             json=body,
             headers=headers,
             timeout=30
         )
-        log_info(f"响应状态码: {response.status_code}")
-        log_info(f"响应内容: {response.text[:500] if response.text else 'Empty'}")
+        log_info(f"Response status: {response.status_code}")
+        log_info(f"Response body: {response.text[:500] if response.text else 'Empty'}")
         if response.status_code != 200:
-            log_error(f"HTTP 错误: {response.status_code}")
+            log_error(f"HTTP error: {response.status_code}")
             return None
         result = response.json()
     except requests.RequestException as e:
-        log_error(f"请求失败: {e}")
+        log_error(f"Request failed: {e}")
         return None
     except json.JSONDecodeError:
-        log_error(f"响应解析失败: {response.text[:500] if response.text else 'Empty'}")
+        log_error(f"Response parse failed: {response.text[:500] if response.text else 'Empty'}")
         return None
 
     if result.get("success"):
         task_id = result.get("task_id")
-        log_success("任务创建成功!")
+        log_success("Task created successfully!")
         print(f"Task ID: {task_id}")
         return task_id
     else:
-        log_error(f"任务创建失败: {result.get('error', 'Unknown error')}")
+        log_error(f"Task creation failed: {result.get('error', 'Unknown error')}")
         return None
 
 
@@ -242,16 +242,16 @@ def query_task(api_key, task_id, extra_headers=None):
         )
         return response.json()
     except requests.RequestException as e:
-        log_error(f"请求失败: {e}")
+        log_error(f"Request failed: {e}")
         return None
     except json.JSONDecodeError:
-        log_error(f"响应解析失败: {response.text}")
+        log_error(f"Response parse failed: {response.text}")
         return None
 
 
-def poll_task(api_key, task_id, max_time=MAX_POLL_TIME, extra_headers=None):
-    """Poll task until completion or failure."""
-    log_info(f"查询任务状态: {task_id}")
+def poll_task(api_key, task_id, max_time=MAX_POLL_TIME, extra_headers=None, output_dir=None):
+    """Poll task until completion or failure. Auto-downloads file if output_dir is provided."""
+    log_info(f"Polling task status: {task_id}")
 
     start_time = time.time()
     last_progress = -1
@@ -259,7 +259,7 @@ def poll_task(api_key, task_id, max_time=MAX_POLL_TIME, extra_headers=None):
     while True:
         elapsed = time.time() - start_time
         if elapsed > max_time:
-            log_error(f"轮询超时 ({max_time}秒)")
+            log_error(f"Polling timeout ({max_time}s)")
             return None
 
         task = query_task(api_key, task_id, extra_headers)
@@ -277,80 +277,100 @@ def poll_task(api_key, task_id, max_time=MAX_POLL_TIME, extra_headers=None):
 
         if status == "completed":
             output = task.get("output", {})
-            log_success("任务完成!")
-            print(f"文件名: {output.get('file_name', 'N/A')}")
-            print(f"下载链接: {output.get('file_url', 'N/A')}")
-            print(f"链接有效期至: {format_timestamp(output.get('expires_at'))}")
+            task_url = output.get("task_url", f"{API_BASE}/task/{task_id}")
+            log_success("Task completed!")
             if output.get("slide_count"):
-                print(f"PPT 页数: {output.get('slide_count')}")
+                print(f"Slide count: {output.get('slide_count')}")
             if output.get("word_count"):
-                print(f"字数: {output.get('word_count')}")
+                print(f"Word count: {output.get('word_count')}")
+
+            # Auto-download file if output_dir is provided and file_url exists
+            file_url = output.get("file_url")
+            if output_dir and file_url:
+                local_path = _download_to_local(file_url, output.get("file_name"), output_dir)
+                if local_path:
+                    print(f"[RESULT] Local file: {local_path}")
+            elif file_url:
+                # No output_dir, download to current directory
+                local_path = _download_to_local(file_url, output.get("file_name"), ".")
+                if local_path:
+                    print(f"[RESULT] Local file: {local_path}")
+
+            print(f"[RESULT] Task URL: {task_url}")
             return task
 
         elif status == "failed":
-            log_error("任务失败!")
-            print(f"错误信息: {task.get('error', 'Unknown error')}")
+            log_error("Task failed!")
+            print(f"Error: {task.get('error', 'Unknown error')}")
             return task
 
         time.sleep(POLL_INTERVAL)
 
 
+def _download_to_local(file_url, file_name, output_dir):
+    """Download file from URL to local directory. Returns local file path or None."""
+    if not file_url:
+        return None
+
+    log_info("Downloading file...")
+
+    try:
+        response = requests.get(file_url, timeout=120)
+        response.raise_for_status()
+    except requests.RequestException as e:
+        log_error(f"Download failed: {e}")
+        return None
+
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    file_path = output_path / (file_name or "output")
+    with open(file_path, "wb") as f:
+        f.write(response.content)
+
+    log_success(f"File saved: {file_path}")
+    return str(file_path)
+
+
 def download_file(api_key, task_id, output_dir, extra_headers=None):
-    """Download the generated file."""
+    """Download the generated file. Returns local file path or False."""
     # First query task to get file URL
     task = query_task(api_key, task_id, extra_headers)
     if not task:
         return False
 
     if task.get("status") != "completed":
-        log_error(f"任务未完成，当前状态: {task.get('status')}")
+        log_error(f"Task not completed, current status: {task.get('status')}")
         return False
 
     output = task.get("output", {})
     file_url = output.get("file_url")
     file_name = output.get("file_name")
+    task_url = output.get("task_url", f"{API_BASE}/task/{task_id}")
 
     if not file_url:
-        log_error("无法获取下载链接")
+        log_error("Unable to get download URL")
         return False
 
-    log_info("下载文件中...")
-
-    try:
-        response = requests.get(file_url, timeout=120)
-        response.raise_for_status()
-    except requests.RequestException as e:
-        log_error(f"下载失败: {e}")
-        return False
-
-    # Ensure output directory exists
-    output_path = Path(output_dir)
-    output_path.mkdir(parents=True, exist_ok=True)
-
-    # Save file
-    file_path = output_path / file_name
-    with open(file_path, "wb") as f:
-        f.write(response.content)
-
-    log_success(f"文件已保存: {file_path}")
-    return True
+    local_path = _download_to_local(file_url, file_name, output_dir)
+    if local_path:
+        print(f"[RESULT] Local file: {local_path}")
+        print(f"[RESULT] Task URL: {task_url}")
+        return local_path
+    return False
 
 
 def run_full_workflow(api_key, operation, prompt, output_dir, extra_headers=None, style=None, **kwargs):
-    """Run the full workflow: create -> poll -> download."""
+    """Run the full workflow: create -> poll -> auto download."""
     # Create task
     task_id = create_task(api_key, operation, prompt, extra_headers=extra_headers, style=style, **kwargs)
     if not task_id:
         return False
 
-    # Poll for completion
-    task = poll_task(api_key, task_id, extra_headers=extra_headers)
+    # Poll for completion (auto-downloads if output_dir is provided)
+    task = poll_task(api_key, task_id, extra_headers=extra_headers, output_dir=output_dir or ".")
     if not task or task.get("status") != "completed":
         return False
-
-    # Download file
-    if output_dir:
-        return download_file(api_key, task_id, output_dir, extra_headers=extra_headers)
 
     return True
 
@@ -362,7 +382,7 @@ def main():
         epilog="""
 Examples:
   # Create a slide task
-  python3 anygen.py create -k sk-xxx -o slide -p "关于AI的演示文稿"
+  python3 anygen.py create -k sk-xxx -o slide -p "AI trends presentation"
 
   # Poll task status
   python3 anygen.py poll -k sk-xxx --task-id task_xxx
@@ -371,7 +391,7 @@ Examples:
   python3 anygen.py download -k sk-xxx --task-id task_xxx --output ./
 
   # Run full workflow
-  python3 anygen.py run -k sk-xxx -o slide -p "关于AI的演示文稿" --output ./
+  python3 anygen.py run -k sk-xxx -o slide -p "AI trends presentation" --output ./
         """
     )
 
@@ -396,12 +416,13 @@ Examples:
     create_parser.add_argument("--ratio", "-r", choices=["16:9", "4:3"], help="Slide ratio")
     create_parser.add_argument("--doc-format", "-f", choices=["docx", "pdf"], help="Document format")
     create_parser.add_argument("--file", action="append", dest="files", help="Attachment file path (can be used multiple times)")
-    create_parser.add_argument("--style", "-s", help="Style preference (e.g., '商务正式', '简约现代', '科技感')")
+    create_parser.add_argument("--style", "-s", help="Style preference (e.g., 'business formal', 'minimalist modern', 'tech')")
 
     # Poll command
-    poll_parser = subparsers.add_parser("poll", help="Poll task status until completion")
+    poll_parser = subparsers.add_parser("poll", help="Poll task status until completion and auto-download")
     add_common_args(poll_parser)
     poll_parser.add_argument("--task-id", required=True, help="Task ID to poll")
+    poll_parser.add_argument("--output", help="Output directory for auto-download (default: current directory)")
 
     # Download command
     download_parser = subparsers.add_parser("download", help="Download generated file")
@@ -422,7 +443,7 @@ Examples:
     run_parser.add_argument("--ratio", "-r", choices=["16:9", "4:3"], help="Slide ratio")
     run_parser.add_argument("--doc-format", "-f", choices=["docx", "pdf"], help="Document format")
     run_parser.add_argument("--file", action="append", dest="files", help="Attachment file path")
-    run_parser.add_argument("--style", "-s", help="Style preference (e.g., '商务正式', '简约现代', '科技感')")
+    run_parser.add_argument("--style", "-s", help="Style preference (e.g., 'business formal', 'minimalist modern', 'tech')")
     run_parser.add_argument("--output", help="Output directory (optional)")
 
     # Config command
@@ -467,7 +488,7 @@ Examples:
             save_config(config)
             # Mask API key in output
             display_value = args.value[:10] + "..." if args.key == "api_key" and len(args.value) > 10 else args.value
-            log_success(f"已设置 {args.key} = {display_value}")
+            log_success(f"Set {args.key} = {display_value}")
             sys.exit(0)
 
         elif args.config_action == "get":
@@ -497,7 +518,7 @@ Examples:
             if args.key in config:
                 del config[args.key]
                 save_config(config)
-                log_success(f"已删除 {args.key}")
+                log_success(f"Deleted {args.key}")
             else:
                 log_error(f"{args.key} not found in config")
             sys.exit(0)
@@ -505,10 +526,10 @@ Examples:
     # For other commands, resolve API key
     api_key = get_api_key(getattr(args, 'api_key', None))
     if not api_key:
-        log_error("未找到 API Key。请通过以下方式之一提供:")
-        print("  1. 命令行参数: --api-key sk-xxx")
-        print(f"  2. 环境变量: export {ENV_API_KEY}=sk-xxx")
-        print(f"  3. 配置文件: python3 anygen.py config set api_key sk-xxx")
+        log_error("API Key not found. Provide one via:")
+        print("  1. Command line: --api-key sk-xxx")
+        print(f"  2. Environment variable: export {ENV_API_KEY}=sk-xxx")
+        print(f"  3. Config file: python3 anygen.py config set api_key sk-xxx")
         sys.exit(1)
 
     # Parse extra headers
@@ -531,7 +552,8 @@ Examples:
         sys.exit(0 if task_id else 1)
 
     elif args.command == "poll":
-        task = poll_task(api_key, args.task_id, extra_headers=extra_headers)
+        output_dir = getattr(args, 'output', None) or "."
+        task = poll_task(api_key, args.task_id, extra_headers=extra_headers, output_dir=output_dir)
         if task and task.get("status") == "completed":
             sys.exit(0)
         else:

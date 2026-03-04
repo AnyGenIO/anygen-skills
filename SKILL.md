@@ -1,35 +1,46 @@
 ---
 name: anygen
-description: "AnyGen AI Skills — 内容生成(PPT/文档/网站/数据分析) + 投研PDF报告。"
+description: "AI office content generator by AnyGen. Create professional slides, documents, websites, whiteboards, data tables, research reports, and finance equity reports from natural language prompts. Triggers: make PPT/slides/deck, generate document/report, draw whiteboard/diagram, build website, organize data, analyze earnings, sector scan. Output: auto-downloaded local file + online task URL."
 ---
 
 # AnyGen AI Skills
 
-AnyGen 技能包，包含多个子技能。根据用户意图自动路由。
+AnyGen is an **AI-powered general assistant** with the following capabilities:
+- **Deep Research** — Long-form research reports and industry analysis
+- **Slide / PPT** — Professional presentations with multiple style templates
+- **Doc / DOCX** — Intelligent document generation and formatting
+- **Website** — Rapid web page creation
+- **Data Analysis** — Data analysis and visualization
+- **Image** — AI image generation
+- **Storybook** — Storyboard / whiteboard creation
+- **Finance Report** — Professional equity research PDF reports
 
-## 子技能
+This skill pack contains multiple sub-skills, automatically routed by user intent.
 
-### 1. Task Creator — 通用内容生成
-生成PPT、文档、网站、数据分析、故事板等。
+## Sub-skills
 
-**触发词:** "做个PPT"、"生成文档"、"建个网站"、"数据分析"
-**详见:** `task-creator/skill.md`
+### 1. Task Manager — General Content Generation
+Generate PPT, documents, websites, data analysis, storyboards, etc. Files are auto-downloaded locally after task completion.
 
-### 2. Finance Report — 投研PDF报告
-深度股票分析、财报分析、赛道扫描，生成专业PDF投研报告。
+**Example triggers:** "make a product roadmap PPT", "draw a user journey whiteboard", "write an AI industry deep research report", "organize this data into a table", "analyze NVIDIA's latest earnings with AnyGen"
+**Details:** `task-manager/skill.md`
 
-**触发词:** "分析XX"、"XX财报分析"、"赛道扫描"、"出报告"
-**详见:** `finance-report/skill.md`
+### 2. Finance Report — Equity Research PDF
+Deep stock analysis, earnings analysis, sector scans, professional equity research PDF reports.
 
-## 路由规则
+**Example triggers:** "analyze NVDA earnings", "sector scan of AI semiconductor stocks", "generate a coverage report"
+**Details:** `finance-report/skill.md`
 
-| 用户意图 | 路由到 |
-|---------|--------|
-| PPT/文档/网站/故事板/数据分析 | `task-creator/skill.md` |
-| 股票分析/财报/估值/赛道扫描 | `finance-report/skill.md` |
+## Routing Rules
 
-## 前置条件
+| User Intent | Route To |
+|-------------|----------|
+| PPT / documents / websites / storyboards / data analysis / whiteboards / deep research | `task-manager/skill.md` |
+| Stock analysis / earnings / valuation / sector scans | `finance-report/skill.md` |
+
+## Prerequisites
 
 - Python3
-- AnyGen API Key（配置方式见 `task-creator/skill.md`）
-- 投研报告需要 fin_* 系列数据工具
+- AnyGen API Key (see `task-manager/skill.md` for configuration)
+- First-time users: visit [www.anygen.io/home](https://www.anygen.io/home) to explore capabilities and obtain an API Key
+- Finance reports require `fin_*` data tools
