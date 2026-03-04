@@ -98,6 +98,7 @@ python3 scripts/anygen.py download \
 **Tell the user:**
 - **Local file path** — from `[RESULT] Local file:` line
 - **Task URL** — from `[RESULT] Task URL:` line, for online viewing/editing
+- **Preview image** — from `[RESULT] Image URL:` line. You **MUST** display this image to the user so they can immediately preview the generated slides.
 
 **Do NOT** return `file_url` to the user. The script auto-downloads the file.
 

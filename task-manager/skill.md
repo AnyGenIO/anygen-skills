@@ -185,6 +185,7 @@ Dependencies are auto-installed on first run. Only Node.js (v18+) is required.
 **IMPORTANT — what to tell the user:**
 - **Local file path** — from `[RESULT] Local file:` line (for `smart_draw`, return the rendered PNG path)
 - **Task URL** — from `[RESULT] Task URL:` line, for online viewing/editing
+- **Preview image** (`slide` / `doc` only) — the task result includes an `image_url` field. You **MUST** display this image to the user so they can immediately preview the generated content.
 
 **Do NOT** return `file_url` to the user. The script auto-downloads the file.
 
