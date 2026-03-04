@@ -137,7 +137,8 @@ def encode_file(file_path):
 
 
 def create_task(api_key, operation, prompt, language=None, slide_count=None,
-                template=None, ratio=None, doc_format=None, files=None, extra_headers=None, style=None):
+                template=None, ratio=None, doc_format=None, files=None, extra_headers=None, style=None,
+                diagram_type=None):
     """Create an async generation task."""
     log_info("Creating task...")
 
@@ -173,6 +174,10 @@ def create_task(api_key, operation, prompt, language=None, slide_count=None,
     if operation == "doc":
         if doc_format:
             body["doc_format"] = doc_format
+
+    # SmartDraw-specific parameters
+    if operation == "smart_draw":
+        body["smart_draw_format"] = diagram_type or "drawio"
 
     # Process files
     if files:
@@ -407,8 +412,8 @@ Examples:
     create_parser = subparsers.add_parser("create", help="Create a generation task")
     add_common_args(create_parser)
     create_parser.add_argument("--operation", "-o", required=True,
-                               choices=["chat", "slide", "doc", "storybook", "data_analysis", "website"],
-                               help="Operation type: chat, slide, doc, storybook, data_analysis, website")
+                               choices=["chat", "slide", "doc", "storybook", "data_analysis", "website", "smart_draw"],
+                               help="Operation type: chat, slide, doc, storybook, data_analysis, website, smart_draw")
     create_parser.add_argument("--prompt", "-p", required=True, help="Content prompt")
     create_parser.add_argument("--language", "-l", help="Language (zh-CN, en-US)")
     create_parser.add_argument("--slide-count", "-c", type=int, help="Number of slides")
@@ -417,6 +422,8 @@ Examples:
     create_parser.add_argument("--doc-format", "-f", choices=["docx", "pdf"], help="Document format")
     create_parser.add_argument("--file", action="append", dest="files", help="Attachment file path (can be used multiple times)")
     create_parser.add_argument("--style", "-s", help="Style preference (e.g., 'business formal', 'minimalist modern', 'tech')")
+    create_parser.add_argument("--smart-draw-format", "-d", choices=["excalidraw", "drawio"], default="drawio",
+                               help="SmartDraw export format (default: drawio)")
 
     # Poll command
     poll_parser = subparsers.add_parser("poll", help="Poll task status until completion and auto-download")
@@ -434,8 +441,8 @@ Examples:
     run_parser = subparsers.add_parser("run", help="Run full workflow: create -> poll -> download")
     add_common_args(run_parser)
     run_parser.add_argument("--operation", "-o", required=True,
-                           choices=["chat", "slide", "doc", "storybook", "data_analysis", "website"],
-                           help="Operation type: chat, slide, doc, storybook, data_analysis, website")
+                           choices=["chat", "slide", "doc", "storybook", "data_analysis", "website", "smart_draw"],
+                           help="Operation type: chat, slide, doc, storybook, data_analysis, website, smart_draw")
     run_parser.add_argument("--prompt", "-p", required=True, help="Content prompt")
     run_parser.add_argument("--language", "-l", help="Language (zh-CN, en-US)")
     run_parser.add_argument("--slide-count", "-c", type=int, help="Number of slides")
@@ -444,6 +451,8 @@ Examples:
     run_parser.add_argument("--doc-format", "-f", choices=["docx", "pdf"], help="Document format")
     run_parser.add_argument("--file", action="append", dest="files", help="Attachment file path")
     run_parser.add_argument("--style", "-s", help="Style preference (e.g., 'business formal', 'minimalist modern', 'tech')")
+    run_parser.add_argument("--smart-draw-format", "-d", choices=["excalidraw", "drawio"], default="drawio",
+                           help="SmartDraw export format (default: drawio)")
     run_parser.add_argument("--output", help="Output directory (optional)")
 
     # Config command
@@ -547,7 +556,8 @@ Examples:
             doc_format=args.doc_format,
             files=args.files,
             extra_headers=extra_headers,
-            style=args.style
+            style=args.style,
+            diagram_type=args.smart_draw_format
         )
         sys.exit(0 if task_id else 1)
 
@@ -576,7 +586,8 @@ Examples:
             ratio=args.ratio,
             doc_format=args.doc_format,
             files=args.files,
-            style=args.style
+            style=args.style,
+            diagram_type=args.smart_draw_format
         )
         sys.exit(0 if success else 1)
 

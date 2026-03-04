@@ -14,6 +14,7 @@ A Claude Code skill for generating AI content using AnyGen OpenAPI.
 | `storybook` | Create storyboards | ❌ Online only |
 | `data_analysis` | Data analysis | ❌ Online only |
 | `website` | Website development | ❌ Online only |
+| `smart_draw` | Diagram generation (Excalidraw/DrawIO) | ✅ Yes (.xml/.json → PNG) |
 
 ## Quick Start
 
@@ -21,19 +22,19 @@ A Claude Code skill for generating AI content using AnyGen OpenAPI.
 
 2. **Configure API Key**:
    ```bash
-   python3 ~/.claude/my_skills/anygen/scripts/anygen.py config set api_key "sk-xxx"
+   python3 ~/.openclaw/skills/anygen/task-manager/scripts/anygen.py config set api_key "sk-xxx"
    ```
 
 3. **Generate content**:
    ```bash
    # Generate PPT
-   python3 ~/.claude/my_skills/anygen/scripts/anygen.py run \
+   python3 ~/.openclaw/skills/anygen/task-manager/scripts/anygen.py run \
      --operation slide \
      --prompt "A presentation about AI applications" \
      --output ./output/
 
    # Generate Document
-   python3 ~/.claude/my_skills/anygen/scripts/anygen.py run \
+   python3 ~/.openclaw/skills/anygen/task-manager/scripts/anygen.py run \
      --operation doc \
      --prompt "A report on 2024 tech trends" \
      --output ./output/
@@ -61,6 +62,7 @@ A Claude Code skill for generating AI content using AnyGen OpenAPI.
 | --style | -s | Style preference |
 | --file | | Attachment file (can be used multiple times) |
 | --output | | Output directory for downloaded files |
+| --smart-draw-format | -d | SmartDraw export format: excalidraw or drawio (default: drawio) |
 
 ## More Details
 

@@ -4,4 +4,5 @@ __pycache__/
 *.pdf
 *.html
 node_modules/
+package-lock.json
 .venv/

@@ -14,6 +14,7 @@
 | `storybook` | 创建故事板 | ❌ 仅在线查看 |
 | `data_analysis` | 数据分析 | ❌ 仅在线查看 |
 | `website` | 网站开发 | ❌ 仅在线查看 |
+| `smart_draw` | 图表生成 (Excalidraw/DrawIO) | ✅ 支持 (.xml/.json → PNG) |
 
 ## 快速开始
 
@@ -21,19 +22,19 @@
 
 2. **配置 API Key**：
    ```bash
-   python3 ~/.claude/my_skills/anygen/scripts/anygen.py config set api_key "sk-xxx"
+   python3 ~/.openclaw/skills/anygen/task-manager/scripts/anygen.py config set api_key "sk-xxx"
    ```
 
 3. **生成内容**：
    ```bash
    # 生成 PPT
-   python3 ~/.claude/my_skills/anygen/scripts/anygen.py run \
+   python3 ~/.openclaw/skills/anygen/task-manager/scripts/anygen.py run \
      --operation slide \
      --prompt "关于人工智能应用的演示文稿" \
      --output ./output/
 
    # 生成文档
-   python3 ~/.claude/my_skills/anygen/scripts/anygen.py run \
+   python3 ~/.openclaw/skills/anygen/task-manager/scripts/anygen.py run \
      --operation doc \
      --prompt "2024年科技趋势报告" \
      --output ./output/
@@ -61,6 +62,7 @@
 | --style | -s | 风格偏好 |
 | --file | | 附件文件（可多次使用） |
 | --output | | 下载文件的输出目录 |
+| --smart-draw-format | -d | SmartDraw 导出格式：excalidraw 或 drawio（默认 drawio） |
 
 ## 详细文档
 

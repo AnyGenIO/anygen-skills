@@ -13,6 +13,7 @@ Generate various content using AnyGen API:
 - **Websites** — Landing pages, portfolios
 - **Storybooks** — Visual narratives
 - **Data Analysis** — Charts and insights
+- **SmartDraw** — Diagrams (Excalidraw/DrawIO)
 
 ### 📈 Finance Report
 Professional equity research PDF reports:
@@ -62,6 +63,7 @@ Requires `fin_*` data tools (built into OpenClaw). No additional configuration n
 "Write an AI industry deep research report"
 "Organize this data into a table"
 "Make a quarterly review slide deck"
+"Draw a microservice architecture diagram"
 
 # Finance Report  
 "Analyze NVDA earnings"
@@ -76,7 +78,10 @@ anygen/
 ├── SKILL.md                    # Skill router
 ├── task-manager/               # AnyGen content generation
 │   ├── skill.md
-│   └── scripts/anygen.py
+│   └── scripts/
+│       ├── anygen.py
+│       ├── render-diagram.sh
+│       └── diagram-to-image.ts
 └── finance-report/             # Equity research PDF reports
     ├── skill.md
     ├── config/output.yaml

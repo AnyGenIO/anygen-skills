@@ -13,6 +13,7 @@ AnyGen is an **AI-powered general assistant** with the following capabilities:
 - **Data Analysis** — Data analysis and visualization
 - **Image** — AI image generation
 - **Storybook** — Storyboard / whiteboard creation
+- **SmartDraw** — Diagram generation (Excalidraw/DrawIO) with local PNG rendering
 - **Finance Report** — Professional equity research PDF reports
 
 This skill pack contains multiple sub-skills, automatically routed by user intent.
@@ -35,7 +36,7 @@ Deep stock analysis, earnings analysis, sector scans, professional equity resear
 
 | User Intent | Route To |
 |-------------|----------|
-| PPT / documents / websites / storyboards / data analysis / whiteboards / deep research | `task-manager/skill.md` |
+| PPT / documents / websites / storyboards / data analysis / whiteboards / diagrams / deep research | `task-manager/skill.md` |
 | Stock analysis / earnings / valuation / sector scans | `finance-report/skill.md` |
 
 ## Prerequisites
