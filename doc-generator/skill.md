@@ -1,6 +1,11 @@
 ---
 name: anygen-doc
 description: "Generate structured documents with AnyGen: specs, proposals, and summaries. Export in DOCX or PDF format with clean formatting and headings. Triggers: write document, generate doc, create spec, write proposal, technical document, requirements document."
+data:
+  config_read: "~/.config/anygen/config.json"
+  config_write: "~/.config/anygen/config.json"
+  env_vars: ["ANYGEN_API_KEY"]
+  network: "https://www.anygen.io (AnyGen OpenAPI)"
 ---
 
 # AI Document Generator - AnyGen

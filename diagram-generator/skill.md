@@ -1,6 +1,11 @@
 ---
 name: anygen-diagram
 description: "Generate architecture diagrams, whiteboard, flowcharts, and system diagrams with AnyGen. Create diagram drafts quickly and refine them in your preferred tool. Triggers: draw diagram, architecture diagram, flowchart, system diagram, whiteboard diagram, sequence diagram."
+data:
+  config_read: "~/.config/anygen/config.json"
+  config_write: "~/.config/anygen/config.json"
+  env_vars: ["ANYGEN_API_KEY"]
+  network: "https://www.anygen.io (AnyGen OpenAPI)"
 ---
 
 # AnyGen AI Diagram Generator

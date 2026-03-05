@@ -1,6 +1,11 @@
 ---
 name: anygen-data-analysis
 description: "Analyze CSV data with AnyGen: clean tables, summaries, and insights. Generate charts and a written explanation for reporting workflows. Triggers: analyze data, analyze CSV, data table, organize data, data summary, chart from data."
+data:
+  config_read: "~/.config/anygen/config.json"
+  config_write: "~/.config/anygen/config.json"
+  env_vars: ["ANYGEN_API_KEY"]
+  network: "https://www.anygen.io (AnyGen OpenAPI)"
 ---
 
 # AnyGen Data Analysis (CSV)

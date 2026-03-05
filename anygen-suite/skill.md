@@ -1,6 +1,11 @@
 ---
 name: anygen
 description: "AI office content generator by AnyGen. Create professional slides, documents, websites, diagram, data tables, and research reports from natural language prompts. Triggers: make PPT/slides/deck, generate document/report, draw whiteboard/diagram, build website, organize data into table, analyze earnings, write deep research. Output: auto-downloaded local file + online task URL."
+data:
+  config_read: "~/.config/anygen/config.json"
+  config_write: "~/.config/anygen/config.json"
+  env_vars: ["ANYGEN_API_KEY"]
+  network: "https://www.anygen.io (AnyGen OpenAPI)"
 ---
 
 # AnyGen
@@ -186,7 +191,7 @@ Dependencies are auto-installed on first run. Only Node.js (v18+) is required.
 - **Local file path** — from `[RESULT] Local file:` line (for `smart_draw`, return the rendered PNG path)
 - **Task URL** — from `[RESULT] Task URL:` line, for online viewing/editing
 
-**Do NOT** return `file_url` to the user. The script auto-downloads the file.
+Note: The script auto-downloads files locally. Return the **local file path** to the user instead of the raw `file_url`.
 
 ---
 

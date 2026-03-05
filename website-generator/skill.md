@@ -1,6 +1,11 @@
 ---
 name: anygen-website
 description: "Build a landing page or simple website with AnyGen from a prompt. Generate sections, copy, and basic layout quickly for faster iteration. Triggers: build website, landing page, create webpage, web page, simple site."
+data:
+  config_read: "~/.config/anygen/config.json"
+  config_write: "~/.config/anygen/config.json"
+  env_vars: ["ANYGEN_API_KEY"]
+  network: "https://www.anygen.io (AnyGen OpenAPI)"
 ---
 
 # AnyGen AI Website Generator

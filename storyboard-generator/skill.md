@@ -1,6 +1,11 @@
 ---
 name: anygen-storyboard
 description: "Create storyboard-style visuals with AnyGen for narratives and slides. Supporting Nano Banana pro and Nano Banana 2. Triggers: storyboard, visual narrative, creative storyboard, visual story."
+data:
+  config_read: "~/.config/anygen/config.json"
+  config_write: "~/.config/anygen/config.json"
+  env_vars: ["ANYGEN_API_KEY"]
+  network: "https://www.anygen.io (AnyGen OpenAPI)"
 ---
 
 # AnyGen Storyboard / Creative Generator

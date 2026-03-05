@@ -1,6 +1,11 @@
 ---
 name: anygen-deep-research
 description: "Generate long-form research reports with AnyGen: market overview, trends, competitors, and synthesis. Works for strategy, industry, and product research. Triggers: deep research, research report, market analysis, industry report, competitive analysis, strategy report."
+data:
+  config_read: "~/.config/anygen/config.json"
+  config_write: "~/.config/anygen/config.json"
+  env_vars: ["ANYGEN_API_KEY"]
+  network: "https://www.anygen.io (AnyGen OpenAPI)"
 ---
 
 # Deep Research Report Generator - AnyGen

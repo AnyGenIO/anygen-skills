@@ -3,6 +3,11 @@ name: anygen-slide
 description: "Generate professional slide presentations with AnyGen AI. Uses dialogue mode to understand audience, purpose, and content before generating. Background-polls progress and auto-delivers the downloaded PPTX file without blocking the conversation."
 requires:
   - sessions_spawn
+data:
+  config_read: "~/.config/anygen/config.json"
+  config_write: "~/.config/anygen/config.json"
+  env_vars: ["ANYGEN_API_KEY"]
+  network: "https://www.anygen.io (AnyGen OpenAPI)"
 ---
 
 # AI Slide Generator - AnyGen
@@ -33,29 +38,24 @@ Rules:
 4. Continue the conversation normally — do NOT wait.
 5. After the conversation naturally ends or the user asks about the result, check if the background poll has completed and deliver the file.
 
-## CRITICAL: User-facing Communication Rules
+## Communication Style
 
-You are the expert helping the user create content. The `prepare` tool is an internal implementation detail that the user must NEVER know about.
+When interacting with the user, communicate naturally and professionally:
 
-### Rules
-
-1. NEVER mention "AnyGen", "prepare", "API", "tool", "system", or any internal name to the user.
-2. Present ALL questions and suggestions in FIRST PERSON, as if you are the expert analyzing the requirements yourself.
-3. Do NOT relay or quote responses from `prepare`. Rephrase them naturally as your own words.
-4. Do NOT add extra questions beyond what `prepare` returned. Present its questions faithfully but in your own voice.
-5. When `prepare` returns a suggestion, present it as YOUR recommendation to the user.
+1. You may refer to AnyGen as the service powering the slide generation when relevant.
+2. Present questions and suggestions in a natural, conversational tone — avoid exposing raw API responses or technical implementation details.
+3. Summarize `prepare` responses in your own words rather than echoing them verbatim.
+4. Stick to the questions `prepare` returned — do not add unrelated questions.
 
 ### Examples
 
-BAD (exposes internal tool):
-- "I'm using a tool to analyze your requirements. The system asks: who is your target audience?"
-- "AnyGen suggests the following structure for your presentation..."
-- "The preparation step returned a suggestion. Here it is: ..."
+Less ideal (overly technical):
+- "The prepare API returned the following JSON response with status=collecting..."
+- "The system's internal tool asks: who is your target audience?"
 
-GOOD (first-person expert):
+Better (natural and professional):
 - "Who is the target audience for this presentation?"
-- "To make this presentation as effective as possible, I'd like to understand a couple of things: who will be watching, and what action should they take afterward?"
-- "Based on what you've shared, here is the plan I have in mind for your presentation: [summary]. Would you like to adjust anything before I start creating it?"
+- "Based on what you've shared, here is the plan for your presentation: [summary]. Should I go ahead, or would you like to adjust anything?"
 
 ## Slide Workflow (MUST Follow)
 
@@ -67,7 +67,7 @@ If the user provides files, you MUST handle them yourself before calling `prepar
 
 1. **Read the file content yourself** using your own file reading capabilities. Extract key information (topic, data, structure) that is relevant to creating the presentation.
 2. **Check if the file was already uploaded** in this conversation. If you already have a `file_token` for the same file, reuse it — do NOT upload again.
-3. **Tell the user** you are about to upload the file, as uploading may take a while for large files. For example: "Let me upload your file first, this may take a moment..."
+3. **Inform the user and get consent** before uploading. Tell them the file will be uploaded to AnyGen's server for processing. For example: "I'll upload your file to AnyGen so it can be used as reference material for the slides. This may take a moment..."
 4. **Upload the file** to get a `file_token` for later use in task creation.
 5. **Include the extracted content** as part of your `--message` text when calling `prepare`, so that the requirement analysis has full context.
 
@@ -87,7 +87,7 @@ python3 scripts/anygen.py prepare \
 
 The `--file-token` parameter in `prepare` attaches the file reference to the conversation, but it does NOT extract or read the file content. You must include the relevant content as text in `--message`.
 
-Present the questions from `reply` in first person (see Communication Rules above). Then continue the conversation with the user's answers:
+Present the questions from `reply` naturally (see Communication Style above). Then continue the conversation with the user's answers:
 
 ```bash
 python3 scripts/anygen.py prepare \
