@@ -62,7 +62,7 @@
 | --style | -s | 风格偏好 |
 | --file | | 附件文件（可多次使用） |
 | --output | | 下载文件的输出目录 |
-| --smart-draw-format | -d | SmartDraw 导出格式：excalidraw 或 drawio（默认 drawio） |
+| --export-format | -f | 导出格式（slide: pptx/image, doc: docx/image, smart_draw: drawio/excalidraw） |
 
 ## 详细文档
 

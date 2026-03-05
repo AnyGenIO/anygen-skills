@@ -38,6 +38,7 @@ Generate professional slide decks from natural language prompts. Supports multip
 - **Aspect ratio** — 16:9 (projection) or 4:3 (printing)
 
 **Optional:**
+- **Export format** — `pptx` (default) or `image`
 - Reference files (PDF, PNG, JPG, DOCX, PPTX, TXT) via `--file`
 - Language: `zh-CN` (default) or `en-US`
 
@@ -57,6 +58,7 @@ python3 scripts/anygen.py create \
 |-----------|-------|-------------|
 | --operation | -o | **Must be `slide`** |
 | --prompt | -p | Content description |
+| --export-format | -f | `pptx` (default) / `image` |
 | --api-key | -k | API Key (omit if configured) |
 | --style | -s | Style preference |
 | --slide-count | -c | Number of pages |

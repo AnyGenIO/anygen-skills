@@ -137,8 +137,7 @@ def encode_file(file_path):
 
 
 def create_task(api_key, operation, prompt, language=None, slide_count=None,
-                template=None, ratio=None, doc_format=None, files=None, extra_headers=None, style=None,
-                smart_draw_format=None):
+                template=None, ratio=None, export_format=None, files=None, extra_headers=None, style=None):
     """Create an async generation task."""
     log_info("Creating task...")
 
@@ -170,14 +169,9 @@ def create_task(api_key, operation, prompt, language=None, slide_count=None,
         if ratio:
             body["ratio"] = ratio
 
-    # Doc-specific parameters
-    if operation == "doc":
-        if doc_format:
-            body["doc_format"] = doc_format
-
-    # SmartDraw-specific parameters
-    if operation == "smart_draw":
-        body["smart_draw_format"] = smart_draw_format or "drawio"
+    # Export format
+    if export_format:
+        body["export_format"] = export_format
 
     # Process files
     if files:
@@ -425,11 +419,9 @@ Examples:
     create_parser.add_argument("--slide-count", "-c", type=int, help="Number of slides")
     create_parser.add_argument("--template", "-t", help="Slide template")
     create_parser.add_argument("--ratio", "-r", choices=["16:9", "4:3"], help="Slide ratio")
-    create_parser.add_argument("--doc-format", "-f", choices=["docx", "pdf"], help="Document format")
+    create_parser.add_argument("--export-format", "-f", help="Export format (slide: pptx/image, doc: docx/image, smart_draw: drawio/excalidraw)")
     create_parser.add_argument("--file", action="append", dest="files", help="Attachment file path (can be used multiple times)")
     create_parser.add_argument("--style", "-s", help="Style preference (e.g., 'business formal', 'minimalist modern', 'tech')")
-    create_parser.add_argument("--smart-draw-format", "-d", choices=["excalidraw", "drawio"], default="drawio",
-                               help="SmartDraw export format (default: drawio)")
 
     # Poll command
     poll_parser = subparsers.add_parser("poll", help="Poll task status until completion and auto-download")
@@ -454,11 +446,9 @@ Examples:
     run_parser.add_argument("--slide-count", "-c", type=int, help="Number of slides")
     run_parser.add_argument("--template", "-t", help="Slide template")
     run_parser.add_argument("--ratio", "-r", choices=["16:9", "4:3"], help="Slide ratio")
-    run_parser.add_argument("--doc-format", "-f", choices=["docx", "pdf"], help="Document format")
+    run_parser.add_argument("--export-format", "-f", help="Export format (slide: pptx/image, doc: docx/image, smart_draw: drawio/excalidraw)")
     run_parser.add_argument("--file", action="append", dest="files", help="Attachment file path")
     run_parser.add_argument("--style", "-s", help="Style preference (e.g., 'business formal', 'minimalist modern', 'tech')")
-    run_parser.add_argument("--smart-draw-format", "-d", choices=["excalidraw", "drawio"], default="drawio",
-                           help="SmartDraw export format (default: drawio)")
     run_parser.add_argument("--output", help="Output directory (optional)")
 
     # Config command
@@ -559,11 +549,10 @@ Examples:
             slide_count=args.slide_count,
             template=args.template,
             ratio=args.ratio,
-            doc_format=args.doc_format,
+            export_format=args.export_format,
             files=args.files,
             extra_headers=extra_headers,
             style=args.style,
-            smart_draw_format=args.smart_draw_format
         )
         sys.exit(0 if task_id else 1)
 
@@ -590,10 +579,9 @@ Examples:
             slide_count=args.slide_count,
             template=args.template,
             ratio=args.ratio,
-            doc_format=args.doc_format,
+            export_format=args.export_format,
             files=args.files,
             style=args.style,
-            smart_draw_format=args.smart_draw_format
         )
         sys.exit(0 if success else 1)
 

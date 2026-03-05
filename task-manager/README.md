@@ -62,7 +62,7 @@ A Claude Code skill for generating AI content using AnyGen OpenAPI.
 | --style | -s | Style preference |
 | --file | | Attachment file (can be used multiple times) |
 | --output | | Output directory for downloaded files |
-| --smart-draw-format | -d | SmartDraw export format: excalidraw or drawio (default: drawio) |
+| --export-format | -f | Export format (slide: pptx/image, doc: docx/image, smart_draw: drawio/excalidraw) |
 
 ## More Details
 

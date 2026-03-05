@@ -33,7 +33,7 @@ Generate structured documents from natural language prompts. Supports DOCX and P
 2. **Prompt** — What the document should cover
 
 **Document-specific options:**
-- **Format** — `docx` (default) or `pdf`
+- **Export format** — `docx` (default) or `image`
 
 **Optional:**
 - Style preference via `--style`
@@ -46,7 +46,7 @@ Generate structured documents from natural language prompts. Supports DOCX and P
 python3 scripts/anygen.py create \
   --operation doc \
   --prompt "A technical design document for a real-time notification system" \
-  --doc-format docx
+  --export-format docx
 # → Task ID: task_abc123xyz
 ```
 
@@ -54,7 +54,7 @@ python3 scripts/anygen.py create \
 |-----------|-------|-------------|
 | --operation | -o | **Must be `doc`** |
 | --prompt | -p | Content description |
-| --doc-format | -f | `docx` (default) / `pdf` |
+| --export-format | -f | `docx` (default) / `image` |
 | --api-key | -k | API Key (omit if configured) |
 | --style | -s | Style preference |
 | --language | -l | zh-CN / en-US |

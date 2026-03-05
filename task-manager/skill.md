@@ -118,10 +118,9 @@ Save the returned `task_id` for subsequent steps.
 | --slide-count | -c | Number of PPT pages | No |
 | --template | -t | PPT template | No |
 | --ratio | -r | 16:9 / 4:3 | No |
-| --doc-format | -f | docx / pdf | No |
+| --export-format | -f | Export format (slide: pptx/image, doc: docx/image, smart_draw: drawio/excalidraw) | No |
 | --file | | Attachment file path (repeatable) | No |
 | --style | -s | Style preference | No |
-| --smart-draw-format | -d | excalidraw / drawio (default: drawio) | No |
 
 ### Step 3: Check progress — call `status` periodically and report to user
 
@@ -236,8 +235,8 @@ Behavior:
 
 ## SmartDraw Reference
 
-| Format | --smart-draw-format | Export File | Render Command |
-|--------|---------------------|-------------|----------------|
+| Format | --export-format | Export File | Render Command |
+|--------|-----------------|-------------|----------------|
 | DrawIO (default) | `drawio` | `.xml` | `render-diagram.sh drawio input.xml output.png` |
 | Excalidraw | `excalidraw` | `.json` | `render-diagram.sh excalidraw input.json output.png` |
 

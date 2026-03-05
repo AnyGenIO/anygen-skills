@@ -47,7 +47,7 @@ Generate architecture diagrams, flowcharts, and system diagrams from natural lan
 python3 scripts/anygen.py create \
   --operation smart_draw \
   --prompt "A microservice architecture diagram with API gateway, auth service, and database" \
-  --smart-draw-format drawio
+  --export-format drawio
 # → Task ID: task_abc123xyz
 ```
 
@@ -55,7 +55,7 @@ python3 scripts/anygen.py create \
 |-----------|-------|-------------|
 | --operation | -o | **Must be `smart_draw`** |
 | --prompt | -p | Diagram description |
-| --smart-draw-format | -d | `drawio` (default) / `excalidraw` |
+| --export-format | -f | `drawio` (default) / `excalidraw` |
 | --api-key | -k | API Key (omit if configured) |
 | --style | -s | Style preference |
 | --language | -l | zh-CN / en-US |
@@ -99,8 +99,8 @@ bash scripts/render-diagram.sh drawio ./output/diagram.xml ./output/diagram.png
 bash scripts/render-diagram.sh excalidraw ./output/diagram.json ./output/diagram.png
 ```
 
-| Format | --smart-draw-format | Export File | Render Command |
-|--------|---------------------|-------------|----------------|
+| Format | --export-format | Export File | Render Command |
+|--------|-----------------|-------------|----------------|
 | DrawIO (default) | `drawio` | `.xml` | `render-diagram.sh drawio input.xml output.png` |
 | Excalidraw | `excalidraw` | `.json` | `render-diagram.sh excalidraw input.json output.png` |
 
