@@ -24,7 +24,7 @@ AnyGen is an **AI-powered general assistant** with the following capabilities:
 - **Website** — Rapid web page creation
 - **Data Analysis** — Data analysis and visualization
 - **Image** — AI image generation
-- **Storybook** — Storyboard style visuals creation
+- **Storybook** — Storybook style visuals creation
 - **SmartDraw** — Diagram generation (professional / hand-drawn style)
 
 ## When to use

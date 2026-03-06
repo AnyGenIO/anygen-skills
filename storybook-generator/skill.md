@@ -1,7 +1,7 @@
 ---
-name: anygen-storyboard
+name: anygen-storybook
 homepage: https://www.anygen.io
-description: "Create storyboard-style visuals with AnyGen for narratives and slides. Supporting Nano Banana pro and Nano Banana 2. Triggers: storyboard, visual narrative, creative storyboard, visual story."
+description: "Create storybook-style visuals with AnyGen for narratives and slides. Supporting Nano Banana pro and Nano Banana 2. Triggers: storybook, visual narrative, creative storybook, visual story."
 env:
   - ANYGEN_API_KEY
 permissions:
@@ -14,17 +14,17 @@ permissions:
       - "~/.config/anygen/config.json"
 ---
 
-# AnyGen Storyboard / Creative Generator
+# AnyGen Storybook / Creative Generator
 
-Create storyboard-style visuals for narratives and slides. Powered by Nano Banana pro and Nano Banana 2. Output: online task URL for viewing (no file download).
+Create storybook-style visuals for narratives and slides. Powered by Nano Banana pro and Nano Banana 2. Output: online task URL for viewing (no file download).
 
 ## When to use
 
 | Scenario | Example Prompts |
 |----------|----------------|
-| Storyboard | "create a storyboard for the product demo video" |
+| Storybook | "create a storybook for the product demo video" |
 | Visual narrative | "make a visual story for the onboarding flow" |
-| Creative visuals | "create storyboard slides for the marketing campaign" |
+| Creative visuals | "create storybook slides for the marketing campaign" |
 
 
 ## Security & Permissions
@@ -57,7 +57,7 @@ Review the bundled scripts before first use to verify behavior.
 
 **Required:**
 1. **API Key** — `sk-xxx` format (skip if already configured)
-2. **Prompt** — What the storyboard should depict
+2. **Prompt** — What the storybook should depict
 
 **Optional:**
 - Style preference via `--style`
@@ -69,14 +69,14 @@ Review the bundled scripts before first use to verify behavior.
 ```bash
 python3 scripts/anygen.py create \
   --operation storybook \
-  --prompt "A storyboard for a 30-second product demo showing user onboarding flow"
+  --prompt "A storybook for a 30-second product demo showing user onboarding flow"
 # → Task ID: task_abc123xyz
 ```
 
 | Parameter | Short | Description |
 |-----------|-------|-------------|
 | --operation | -o | **Must be `storybook`** |
-| --prompt | -p | Storyboard description |
+| --prompt | -p | Storybook description |
 | --api-key | -k | API Key (omit if configured) |
 | --style | -s | Style preference |
 | --language | -l | zh-CN / en-US |
@@ -95,7 +95,7 @@ python3 scripts/anygen.py status \
 1. Call `status` every **10 seconds** to poll internally
 2. Only notify the user at **milestone progress points**: 25%, 50%, 75%, 90%, and completion
 3. Example user-facing messages at milestones:
-   - 25% → "AnyGen is planning storyboard frames..."
+   - 25% → "AnyGen is planning storybook frames..."
    - 50% → "Frames generated, creating visuals..."
    - 75% → "Styling and arranging panels..."
    - 90% → "Almost done, finalizing..."
@@ -103,7 +103,7 @@ python3 scripts/anygen.py status \
 
 ### Step 4: Return results to user
 
-**No file download** for storyboard. Return the **Task URL** for online viewing.
+**No file download** for storybook. Return the **Task URL** for online viewing.
 
 ```bash
 python3 scripts/anygen.py status \
@@ -112,7 +112,7 @@ python3 scripts/anygen.py status \
 ```
 
 **Tell the user:**
-- **Task URL** — for viewing and editing the storyboard online
+- **Task URL** — for viewing and editing the storybook online
 
 ## Error Handling
 
