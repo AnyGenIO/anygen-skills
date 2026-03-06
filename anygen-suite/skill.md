@@ -1,6 +1,6 @@
 ---
 name: anygen
-description: "AI office content generator by AnyGen. Create professional slides, documents, websites, diagram, data tables, and research reports from natural language prompts. Requires ANYGEN_API_KEY env var or ~/.config/anygen/config.json. Uploads user-provided reference files to AnyGen server with user consent. Output: auto-downloaded local file + online task URL."
+description: "AI office content generator by AnyGen. Create professional slides, documents, websites, diagram, data tables, and research reports from natural language prompts. Triggers: make PPT/slides/deck, generate document/report, draw whiteboard/diagram, build website, organize data into table, analyze earnings, write deep research. Output: auto-downloaded local file + online task URL."
 env:
   - ANYGEN_API_KEY
 permissions:

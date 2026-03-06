@@ -1,6 +1,6 @@
 ---
 name: anygen-data-analysis
-description: "Analyze CSV data with AnyGen: clean tables, summaries, and insights. Generate charts and a written explanation for reporting workflows. Triggers: analyze data, analyze CSV, data table, organize data, data summary, chart from data. Requires ANYGEN_API_KEY env var or ~/.config/anygen/config.json."
+description: "Analyze CSV data with AnyGen: clean tables, summaries, and insights. Generate charts and a written explanation for reporting workflows. Triggers: analyze data, analyze CSV, data table, organize data, data summary, chart from data."
 env:
   - ANYGEN_API_KEY
 permissions:

@@ -1,6 +1,6 @@
 ---
 name: anygen-doc
-description: "Generate structured documents with AnyGen: specs, proposals, and summaries. Export in DOCX or PDF format with clean formatting and headings. Triggers: write document, generate doc, create spec, write proposal, technical document, requirements document. Requires ANYGEN_API_KEY env var or ~/.config/anygen/config.json."
+description: "Generate structured documents with AnyGen: specs, proposals, and summaries. Export in DOCX or PDF format with clean formatting and headings. Triggers: write document, generate doc, create spec, write proposal, technical document, requirements document."
 env:
   - ANYGEN_API_KEY
 permissions:

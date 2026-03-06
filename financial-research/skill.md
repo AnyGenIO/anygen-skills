@@ -1,6 +1,6 @@
 ---
 name: anygen-financial-research
-description: "Accelerate financial research with AnyGen: summarize earnings releases and transcripts, extract key KPIs from Nasdaq-listed companies, and draft internal research memos using publicly available market data from sources like Bloomberg, Yahoo Finance, and company filings. Not investment advice. Triggers: analyze earnings, financial summary, earnings report, company financials, KPI extraction. Requires ANYGEN_API_KEY env var or ~/.config/anygen/config.json."
+description: "Accelerate financial research with AnyGen: summarize earnings releases and transcripts, extract key KPIs from Nasdaq-listed companies, and draft internal research memos using publicly available market data from sources like Bloomberg, Yahoo Finance, and company filings. Not investment advice. Triggers: analyze earnings, financial summary, earnings report, company financials, KPI extraction."
 env:
   - ANYGEN_API_KEY
 permissions:

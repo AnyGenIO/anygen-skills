@@ -1,6 +1,6 @@
 ---
 name: anygen-slide
-description: "Generate professional slide presentations with AnyGen AI. Requires ANYGEN_API_KEY env var or ~/.config/anygen/config.json. Uploads user-provided reference files to AnyGen server with user consent. Spawns background poll process (up to 20 min) to auto-download results."
+description: "Generate professional slide presentations with AnyGen AI. Uses dialogue mode to understand audience, purpose, and content before generating. Background-polls progress and auto-delivers the downloaded PPTX file without blocking the conversation."
 requires:
   - sessions_spawn
 env:

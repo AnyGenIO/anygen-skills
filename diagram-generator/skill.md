@@ -1,6 +1,6 @@
 ---
 name: anygen-diagram
-description: "Generate architecture diagrams, whiteboard, flowcharts, and system diagrams with AnyGen. Create diagram drafts quickly and refine them in your preferred tool. Triggers: draw diagram, architecture diagram, flowchart, system diagram, whiteboard diagram, sequence diagram. Requires ANYGEN_API_KEY env var or ~/.config/anygen/config.json."
+description: "Generate architecture diagrams, whiteboard, flowcharts, and system diagrams with AnyGen. Create diagram drafts quickly and refine them in your preferred tool. Triggers: draw diagram, architecture diagram, flowchart, system diagram, whiteboard diagram, sequence diagram."
 env:
   - ANYGEN_API_KEY
 permissions:

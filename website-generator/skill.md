@@ -1,6 +1,6 @@
 ---
 name: anygen-website
-description: "Build a landing page or simple website with AnyGen from a prompt. Generate sections, copy, and basic layout quickly for faster iteration. Triggers: build website, landing page, create webpage, web page, simple site. Requires ANYGEN_API_KEY env var or ~/.config/anygen/config.json."
+description: "Build a landing page or simple website with AnyGen from a prompt. Generate sections, copy, and basic layout quickly for faster iteration. Triggers: build website, landing page, create webpage, web page, simple site."
 env:
   - ANYGEN_API_KEY
 permissions:
