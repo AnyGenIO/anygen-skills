@@ -1,11 +1,17 @@
 ---
 name: anygen-financial-research
+homepage: https://www.anygen.io
 description: "Accelerate financial research with AnyGen: summarize earnings releases and transcripts, extract key KPIs from Nasdaq-listed companies, and draft internal research memos using publicly available market data from sources like Bloomberg, Yahoo Finance, and company filings. Not investment advice. Triggers: analyze earnings, financial summary, earnings report, company financials, KPI extraction."
-data:
-  config_read: "~/.config/anygen/config.json"
-  config_write: "~/.config/anygen/config.json"
-  env_vars: ["ANYGEN_API_KEY"]
-  network: "https://www.anygen.io (AnyGen OpenAPI)"
+env:
+  - ANYGEN_API_KEY
+permissions:
+  network:
+    - "https://www.anygen.io"
+  filesystem:
+    read:
+      - "~/.config/anygen/config.json"
+    write:
+      - "~/.config/anygen/config.json"
 ---
 
 # AnyGen Financial Research Assistant
@@ -22,6 +28,23 @@ Summarize earnings releases and transcripts, extract key KPIs from Nasdaq-listed
 | Financial summary | "summarize Tesla's Q4 financials" |
 | KPI extraction | "extract key KPIs from Apple's latest earnings report" |
 | Research memo | "draft a research memo on Microsoft's cloud revenue growth" |
+
+
+## Security & Permissions
+
+**What this skill does:**
+- Sends task prompts and parameters to the AnyGen API at `www.anygen.io`
+- Reads/writes API key config at `~/.config/anygen/config.json`
+
+**What this skill does NOT do:**
+- Does not upload local files to any server
+- Does not send your API key to any endpoint other than `www.anygen.io`
+- Does not modify system configuration beyond `~/.config/anygen/config.json`
+- Does not run background processes or install additional software
+
+**Bundled scripts:** `scripts/anygen.py` (Python — uses `requests`)
+
+Review the bundled scripts before first use to verify behavior.
 
 ## Prerequisites
 

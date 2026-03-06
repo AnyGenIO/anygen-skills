@@ -1,11 +1,17 @@
 ---
 name: anygen-doc
+homepage: https://www.anygen.io
 description: "Generate structured documents with AnyGen: specs, proposals, and summaries. Export in DOCX or PDF format with clean formatting and headings. Triggers: write document, generate doc, create spec, write proposal, technical document, requirements document."
-data:
-  config_read: "~/.config/anygen/config.json"
-  config_write: "~/.config/anygen/config.json"
-  env_vars: ["ANYGEN_API_KEY"]
-  network: "https://www.anygen.io (AnyGen OpenAPI)"
+env:
+  - ANYGEN_API_KEY
+permissions:
+  network:
+    - "https://www.anygen.io"
+  filesystem:
+    read:
+      - "~/.config/anygen/config.json"
+    write:
+      - "~/.config/anygen/config.json"
 ---
 
 # AI Document Generator - AnyGen
@@ -20,6 +26,25 @@ Generate structured documents from natural language prompts. Supports DOCX and P
 | Product requirements | "generate a product requirements document" |
 | Proposal | "write a project proposal for the new dashboard" |
 | Summary | "create an executive summary of the Q4 results" |
+
+
+## Security & Permissions
+
+**What this skill does:**
+- Sends task prompts and parameters to the AnyGen API at `www.anygen.io`
+- Uploads user-provided reference files to `www.anygen.io` when `--file` is specified
+- Downloads generated documents (DOCX) to local disk
+- Reads/writes API key config at `~/.config/anygen/config.json`
+
+**What this skill does NOT do:**
+- Does not upload files unless the user explicitly provides them via `--file`
+- Does not send your API key to any endpoint other than `www.anygen.io`
+- Does not modify system configuration beyond `~/.config/anygen/config.json`
+- Does not run background processes or install additional software
+
+**Bundled scripts:** `scripts/anygen.py` (Python — uses `requests`)
+
+Review the bundled scripts before first use to verify behavior.
 
 ## Prerequisites
 

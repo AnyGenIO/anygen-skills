@@ -1,11 +1,17 @@
 ---
 name: anygen-diagram
+homepage: https://www.anygen.io
 description: "Generate architecture diagrams, whiteboard, flowcharts, and system diagrams with AnyGen. Create diagram drafts quickly and refine them in your preferred tool. Triggers: draw diagram, architecture diagram, flowchart, system diagram, whiteboard diagram, sequence diagram."
-data:
-  config_read: "~/.config/anygen/config.json"
-  config_write: "~/.config/anygen/config.json"
-  env_vars: ["ANYGEN_API_KEY"]
-  network: "https://www.anygen.io (AnyGen OpenAPI)"
+env:
+  - ANYGEN_API_KEY
+permissions:
+  network:
+    - "https://www.anygen.io"
+  filesystem:
+    read:
+      - "~/.config/anygen/config.json"
+    write:
+      - "~/.config/anygen/config.json"
 ---
 
 # AnyGen AI Diagram Generator
@@ -20,6 +26,25 @@ Generate architecture diagrams, flowcharts, and system diagrams from natural lan
 | Flowchart | "create a flowchart for the CI/CD pipeline" |
 | System design | "draw a system architecture whiteboard" |
 | Sequence diagram | "create a sequence diagram for the auth flow" |
+
+
+## Security & Permissions
+
+**What this skill does:**
+- Sends task prompts and parameters to the AnyGen API at `www.anygen.io`
+- Downloads diagram source files and renders them to PNG locally
+- Installs Chromium automatically on first diagram render (via Puppeteer)
+- Reads/writes API key config at `~/.config/anygen/config.json`
+
+**What this skill does NOT do:**
+- Does not upload local files to any server
+- Does not send your API key to any endpoint other than `www.anygen.io`
+- Does not modify system configuration beyond `~/.config/anygen/config.json`
+- Does not run background processes
+
+**Bundled scripts:** `scripts/anygen.py` (Python — uses `requests`), `scripts/render-diagram.sh` (Bash), `scripts/diagram-to-image.ts` (TypeScript — uses Puppeteer)
+
+Review the bundled scripts before first use to verify behavior.
 
 ## Prerequisites
 

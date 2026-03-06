@@ -1,11 +1,17 @@
 ---
 name: anygen-storyboard
+homepage: https://www.anygen.io
 description: "Create storyboard-style visuals with AnyGen for narratives and slides. Supporting Nano Banana pro and Nano Banana 2. Triggers: storyboard, visual narrative, creative storyboard, visual story."
-data:
-  config_read: "~/.config/anygen/config.json"
-  config_write: "~/.config/anygen/config.json"
-  env_vars: ["ANYGEN_API_KEY"]
-  network: "https://www.anygen.io (AnyGen OpenAPI)"
+env:
+  - ANYGEN_API_KEY
+permissions:
+  network:
+    - "https://www.anygen.io"
+  filesystem:
+    read:
+      - "~/.config/anygen/config.json"
+    write:
+      - "~/.config/anygen/config.json"
 ---
 
 # AnyGen Storyboard / Creative Generator
@@ -19,6 +25,23 @@ Create storyboard-style visuals for narratives and slides. Powered by Nano Banan
 | Storyboard | "create a storyboard for the product demo video" |
 | Visual narrative | "make a visual story for the onboarding flow" |
 | Creative visuals | "create storyboard slides for the marketing campaign" |
+
+
+## Security & Permissions
+
+**What this skill does:**
+- Sends task prompts and parameters to the AnyGen API at `www.anygen.io`
+- Reads/writes API key config at `~/.config/anygen/config.json`
+
+**What this skill does NOT do:**
+- Does not upload local files to any server
+- Does not send your API key to any endpoint other than `www.anygen.io`
+- Does not modify system configuration beyond `~/.config/anygen/config.json`
+- Does not run background processes or install additional software
+
+**Bundled scripts:** `scripts/anygen.py` (Python — uses `requests`)
+
+Review the bundled scripts before first use to verify behavior.
 
 ## Prerequisites
 

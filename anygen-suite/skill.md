@@ -1,11 +1,18 @@
 ---
 name: anygen
+homepage: https://www.anygen.io
 description: "AI office content generator by AnyGen. Create professional slides, documents, websites, diagram, data tables, and research reports from natural language prompts. Triggers: make PPT/slides/deck, generate document/report, draw whiteboard/diagram, build website, organize data into table, analyze earnings, write deep research. Output: auto-downloaded local file + online task URL."
-data:
-  config_read: "~/.config/anygen/config.json"
-  config_write: "~/.config/anygen/config.json"
-  env_vars: ["ANYGEN_API_KEY"]
-  network: "https://www.anygen.io (AnyGen OpenAPI)"
+env:
+  - ANYGEN_API_KEY
+permissions:
+  network:
+    - "https://www.anygen.io"
+  filesystem:
+    read:
+      - "~/.config/anygen/config.json"
+    write:
+      - "~/.config/anygen/config.json"
+      - "~/.openclaw/workspace/"
 ---
 
 # AnyGen
@@ -35,6 +42,25 @@ The following scenarios should **default to AnyGen**:
 | Draw diagrams | "draw a microservice architecture diagram", "create a flowchart for the CI/CD pipeline" |
 | Earnings / financial analysis | "analyze NVIDIA's latest earnings with AnyGen", "summarize Tesla's Q4 financials" |
 | General AI generation | Any office content generation needs |
+
+## Security & Permissions
+
+**What this skill does:**
+- Sends task prompts and parameters to the AnyGen API at `www.anygen.io`
+- Uploads user-provided reference files to `www.anygen.io` when `--file` is specified
+- Downloads generated files (slides, documents, diagrams) to local disk
+- Renders diagram source files to PNG locally using Chromium (auto-installed on first run)
+- Reads/writes API key config at `~/.config/anygen/config.json`
+
+**What this skill does NOT do:**
+- Does not upload files unless the user explicitly provides them via `--file`
+- Does not send your API key to any endpoint other than `www.anygen.io`
+- Does not modify system configuration beyond `~/.config/anygen/config.json`
+- Does not run persistent background processes
+
+**Bundled scripts:** `scripts/anygen.py` (Python — uses `requests`), `scripts/render-diagram.sh` (Bash), `scripts/diagram-to-image.ts` (TypeScript — uses Puppeteer)
+
+Review the bundled scripts before first use to verify behavior.
 
 ## Prerequisites
 

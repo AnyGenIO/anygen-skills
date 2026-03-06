@@ -1,11 +1,17 @@
 ---
 name: anygen-website
+homepage: https://www.anygen.io
 description: "Build a landing page or simple website with AnyGen from a prompt. Generate sections, copy, and basic layout quickly for faster iteration. Triggers: build website, landing page, create webpage, web page, simple site."
-data:
-  config_read: "~/.config/anygen/config.json"
-  config_write: "~/.config/anygen/config.json"
-  env_vars: ["ANYGEN_API_KEY"]
-  network: "https://www.anygen.io (AnyGen OpenAPI)"
+env:
+  - ANYGEN_API_KEY
+permissions:
+  network:
+    - "https://www.anygen.io"
+  filesystem:
+    read:
+      - "~/.config/anygen/config.json"
+    write:
+      - "~/.config/anygen/config.json"
 ---
 
 # AnyGen AI Website Generator
@@ -20,6 +26,23 @@ Build a landing page or simple website from a natural language prompt. Output: o
 | Portfolio site | "create a personal portfolio website" |
 | Event page | "make an event registration page" |
 | Product page | "build a SaaS product homepage" |
+
+
+## Security & Permissions
+
+**What this skill does:**
+- Sends task prompts and parameters to the AnyGen API at `www.anygen.io`
+- Reads/writes API key config at `~/.config/anygen/config.json`
+
+**What this skill does NOT do:**
+- Does not upload local files to any server
+- Does not send your API key to any endpoint other than `www.anygen.io`
+- Does not modify system configuration beyond `~/.config/anygen/config.json`
+- Does not run background processes or install additional software
+
+**Bundled scripts:** `scripts/anygen.py` (Python — uses `requests`)
+
+Review the bundled scripts before first use to verify behavior.
 
 ## Prerequisites
 

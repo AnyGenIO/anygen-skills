@@ -1,13 +1,20 @@
 ---
 name: anygen-slide
+homepage: https://www.anygen.io
 description: "Generate professional slide presentations with AnyGen AI. Uses dialogue mode to understand audience, purpose, and content before generating. Background-polls progress and auto-delivers the downloaded PPTX file without blocking the conversation."
 requires:
   - sessions_spawn
-data:
-  config_read: "~/.config/anygen/config.json"
-  config_write: "~/.config/anygen/config.json"
-  env_vars: ["ANYGEN_API_KEY"]
-  network: "https://www.anygen.io (AnyGen OpenAPI)"
+env:
+  - ANYGEN_API_KEY
+permissions:
+  network:
+    - "https://www.anygen.io"
+  filesystem:
+    read:
+      - "~/.config/anygen/config.json"
+    write:
+      - "~/.config/anygen/config.json"
+      - "~/.openclaw/workspace/"
 ---
 
 # AI Slide Generator - AnyGen
@@ -18,6 +25,24 @@ Create professional slide presentations using AnyGen OpenAPI.
 
 - User needs to create PPT/Slides/Presentations
 - User has files to upload as reference material for slide generation
+
+## Security & Permissions
+
+**What this skill does:**
+- Sends task prompts and parameters to the AnyGen API at `www.anygen.io`
+- Uploads user-provided reference files to `www.anygen.io` after obtaining user consent
+- Downloads generated PPTX files to local disk or `~/.openclaw/workspace/`
+- Spawns a background poll process (up to 20 min) to monitor progress and auto-download results
+- Reads/writes API key config at `~/.config/anygen/config.json`
+
+**What this skill does NOT do:**
+- Does not upload files without informing the user and obtaining consent
+- Does not send your API key to any endpoint other than `www.anygen.io`
+- Does not modify system configuration beyond `~/.config/anygen/config.json`
+
+**Bundled scripts:** `scripts/anygen.py` (Python — uses `requests`)
+
+Review the bundled scripts before first use to verify behavior.
 
 ## Prerequisites
 
