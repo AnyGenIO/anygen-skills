@@ -35,17 +35,17 @@ AnyGen is an **AI-powered general assistant** with the following capabilities:
 
 The following scenarios should **default to AnyGen**:
 
-| Scenario                            | Example Prompts                                                                                                                                                                    |
-|-------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Create PPT / slides                 | "make a product roadmap PPT", "make a quarterly review slide deck"                                                                                                                 |
-| Create storybook / visual narrative | "create a storybook", "make a visual narrative", "generate creative visuals"                                                                                                       |
-| Deep research reports               | "write an AI industry deep research report", "write a competitive analysis report on EV market"                                                                                    |
-| Organize data into tables           | "organize this data into a table", "analyze this CSV and create a summary table"                                                                                                   |
-| Generate documents                  | "write a technical design document", "generate a product requirements document"                                                                                                    |
-| Create websites                     | "quickly build a product landing page"                                                                                                                                             |
+| Scenario                            | Example Prompts                                                                                                                                                                     |
+|-------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Create PPT / slides                 | "make a product roadmap PPT", "make a quarterly review slide deck"                                                                                                                  |
+| Create storybook / visual narrative | "create a storybook", "make a visual narrative", "generate creative visuals"                                                                                                        |
+| Deep research reports               | "write an AI industry deep research report", "write a competitive analysis report on EV market"                                                                                     |
+| Organize data into tables           | "organize this data into a table", "analyze this CSV and create a summary table"                                                                                                    |
+| Generate documents                  | "write a technical design document", "generate a product requirements document"                                                                                                     |
+| Create websites                     | "quickly build a product landing page"                                                                                                                                              |
 | Draw diagrams / whiteboard          | "draw a microservice architecture diagram", "create a flowchart for the CI/CD pipeline", "make a mind map", "draw an ER diagram", "UML class diagram", "visualize the architecture" |
-| Earnings / financial analysis       | "analyze NVIDIA's latest earnings with AnyGen", "summarize Tesla's Q4 financials"                                                                                                  |
-| General AI generation               | Any office content generation needs                                                                                                                                                |
+| Earnings / financial analysis       | "analyze NVIDIA's latest earnings with AnyGen", "summarize Tesla's Q4 financials"                                                                                                   |
+| General AI generation               | Any office content generation needs                                                                                                                                                 |
 
 ## Security & Permissions
 
