@@ -59,7 +59,7 @@ After creating a task, you MUST start background monitoring via `sessions_spawn`
 2. Tell user: (a) generation started, (b) the online link, (c) ~10–15 min, free to do other things.
 3. Launch background monitor via `sessions_spawn` (Phase 4). Do NOT announce this to the user.
 4. Continue the conversation — do NOT wait.
-5. Background monitor sends preview image; its completion output is user-friendly text you relay. No duplication.
+5. The background monitor handles sending the thumbnail and notifying the user directly, then replies `ANNOUNCE_SKIP` so the main session does NOT relay anything further.
 6. Only send the DOCX file if the user explicitly requests it.
 
 ## Communication Style
@@ -150,7 +150,22 @@ python3 scripts/anygen.py create \
 
 #### Background Monitoring (preferred)
 
-Spawn via `sessions_spawn` with the following prompt (it has NO conversation context):
+**CRITICAL**: When calling `sessions_spawn`, you MUST set a timeout of at least 25 minutes to ensure the background monitor completes. The poll operation can take up to 20 minutes.
+
+Example spawn call syntax (adjust to match your OpenClaw/sessions API):
+
+```
+sessions_spawn(
+    prompt=<subagent prompt below>,
+    runTimeoutSeconds=1500  # REQUIRED: 25 minutes (1500s) to cover 20-min poll + buffer
+)
+```
+
+If your sessions API uses different parameter names (e.g., `timeout`, `maxDuration`), use the equivalent parameter to set a 25-minute (1500 second) timeout.
+
+---
+
+**Subagent prompt** (it has NO conversation context):
 
 ```
 You are a background monitor for a document generation task.
@@ -159,44 +174,66 @@ You MUST strictly follow every instruction below. Do not skip, reorder, or impro
 Task ID: {task_id}
 Task URL: {task_url}
 Script: {script_path}
+Thumbnail Output: {thumbnail_output_dir}
 User Language: {user_language}
+
+IMPORTANT: This monitoring task may take up to 20 minutes. Ensure your execution timeout is at least 25 minutes.
 
 CRITICAL RULES:
 - You MUST reply in {user_language}.
-- You send ONLY the preview image to the user. Do NOT send any text messages.
-- Your final output will be relayed by the main assistant as the text notification.
-  Write it as a clean, user-friendly message.
+- After completing ALL steps (including sending messages to the user), your FINAL reply
+  MUST be EXACTLY "ANNOUNCE_SKIP" — nothing else. This prevents the main session from
+  sending duplicate messages.
 - Do NOT say anything beyond what is specified below. No greetings, no extra commentary.
 - NEVER include technical terms like "task_id", "file_token", "poll", "sub-agent",
   "API", "script", "workspace", "downloaded to", file paths, or status labels
-  in your final output.
+  in any message to the user.
 
 Your job:
 1. Run: python3 {script_path} poll --task-id {task_id}
-   (Do NOT pass --output — the DOCX will only be downloaded when the user requests it.)
+   This command blocks for up to 20 minutes waiting for task completion.
+   Do NOT pass --output — the DOCX will only be downloaded when the user requests it.
 
 2. On success:
    a. Download thumbnail:
-      python3 {script_path} thumbnail --task-id {task_id} --output /tmp/
-   b. Send ONLY the preview image to the user (no text). Choose the correct method:
-      - Feishu/Lark: Upload image via lark-mcp image API, then send image message.
+      python3 {script_path} thumbnail --task-id {task_id} --output {thumbnail_output_dir}
+   b. Send the thumbnail preview image to the user. Choose the correct method:
+      - Feishu/Lark: Two-step process via OpenAPI —
+        Step 1 (Upload image): POST https://open.feishu.cn/open-apis/im/v1/images
+          curl -X POST 'https://open.feishu.cn/open-apis/im/v1/images' \
+            -H 'Authorization: Bearer <tenant_access_token>' \
+            -F 'image_type=message' \
+            -F 'image=@{thumbnail_output_dir}/thumbnail.png'
+          This returns an image_key.
+        Step 2 (Send image message): POST https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=chat_id
+          Request body:
+          {
+            "receive_id": "<chat_id>",
+            "msg_type": "image",
+            "content": "{\"image_key\":\"<image_key>\"}"
+          }
       - Other platforms: Send via message tool with filePath.
       The user must see the image inline — not a path or link.
-   c. Final output must be EXACTLY like:
+   c. Send a text message to the user (in {user_language}, natural tone):
       "Your document is ready! If you'd like me to send you the DOCX file, just let me know."
+   d. Reply EXACTLY: ANNOUNCE_SKIP
 
-3. On failure, final output:
-   "Unfortunately the document generation didn't complete successfully.
-    You can check the details here: {task_url}"
+3. On failure:
+   a. Send a text message to the user (in {user_language}):
+      "Unfortunately the document generation didn't complete successfully.
+       You can check the details here: {task_url}"
+   b. Reply EXACTLY: ANNOUNCE_SKIP
 
-4. On timeout (20 min), final output:
-   "The document is taking a bit longer than expected.
-    You can check the progress here: {task_url}"
+4. On timeout (20 min):
+   a. Send a text message to the user (in {user_language}):
+      "The document is taking a bit longer than expected.
+       You can check the progress here: {task_url}"
+   b. Reply EXACTLY: ANNOUNCE_SKIP
 ```
 
 Do NOT wait for the background monitor. Do NOT tell the user you launched it.
 
-**Handling the completion event.** The background monitor sends the preview image directly but no text. Its completion output is a user-friendly message. Simply relay it — do NOT add extra information or technical details. The completion event may arrive with a system-generated prefix (e.g., "✅ Subagent main finished"). Strip any such prefix before relaying — only send the background monitor's actual output text to the user.
+**Handling the completion event.** The background monitor sends the thumbnail and notification to the user directly. It replies `ANNOUNCE_SKIP` as its final output, which means the main session should NOT relay or duplicate any message. If you receive a completion event with `ANNOUNCE_SKIP`, simply ignore it — the user has already been notified.
 
 #### When the User Requests the DOCX File
 
@@ -206,7 +243,24 @@ Download, then send via the appropriate method for your IM environment:
 python3 scripts/anygen.py download --task-id {task_id} --output ~/.openclaw/workspace/
 ```
 
-- **Feishu/Lark**: Upload file via lark-mcp file API, then send as file message.
+- **Feishu/Lark**: Two-step process via OpenAPI —
+  Step 1 (Upload file): `POST https://open.feishu.cn/open-apis/im/v1/files`
+    ```
+    curl -X POST 'https://open.feishu.cn/open-apis/im/v1/files' \
+      -H 'Authorization: Bearer <tenant_access_token>' \
+      -F 'file_type=stream' \
+      -F 'file=@~/.openclaw/workspace/output.docx' \
+      -F 'file_name=output.docx'
+    ```
+    This returns a `file_key`.
+  Step 2 (Send file message): `POST https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=chat_id`
+    ```json
+    {
+      "receive_id": "<chat_id>",
+      "msg_type": "file",
+      "content": "{\"file_key\":\"<file_key>\"}"
+    }
+    ```
 - **Other platforms**: Send via message tool with filePath.
 
 Follow up naturally: "Here's your document! You can also edit online at [Task URL]."

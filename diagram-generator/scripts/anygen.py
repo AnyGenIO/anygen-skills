@@ -534,7 +534,7 @@ def poll_task(api_key, task_id, max_time=MAX_POLL_TIME, extra_headers=None, outp
             ts = datetime.now().strftime("%H:%M:%S")
             mins = int(elapsed) // 60
             secs = int(elapsed) % 60
-            print(f"[HEARTBEAT] {ts} | elapsed {mins}m{secs:02d}s | status: {status} | progress: {progress}%")
+            print(f"[HEARTBEAT] {ts} | elapsed {mins}m{secs:02d}s | status: {status} | progress: {progress}%", flush=True)
             last_heartbeat = now
 
         if status == "completed":
@@ -711,8 +711,7 @@ Examples:
     poll_parser = subparsers.add_parser("poll", help="Poll task status until completion and auto-download")
     add_common_args(poll_parser)
     poll_parser.add_argument("--task-id", required=True, help="Task ID to poll")
-    poll_parser.add_argument("--output", help="Output directory for auto-download (default: current directory)")
-
+    poll_parser.add_argument("--output", help="Output directory for auto-download (omit to skip download)")
 
     # ---- download command ----
     download_parser = subparsers.add_parser("download", help="Download generated file")

@@ -73,7 +73,7 @@ After creating a task, you MUST start background monitoring via `sessions_spawn`
 2. Tell user: (a) generation started, (b) the online link, (c) ~30–60 seconds, free to do other things.
 3. Launch background monitor via `sessions_spawn` (Phase 4). Do NOT announce this to the user.
 4. Continue the conversation — do NOT wait.
-5. Background monitor sends rendered PNG; its completion output is user-friendly text you relay. No duplication.
+5. The background monitor handles sending the rendered PNG and notifying the user directly, then replies `ANNOUNCE_SKIP` so the main session does NOT relay anything further.
 
 ## Communication Style
 
@@ -161,7 +161,22 @@ python3 scripts/anygen.py create \
 
 #### Background Monitoring (preferred)
 
-Spawn via `sessions_spawn` with the following prompt (it has NO conversation context):
+**CRITICAL**: When calling `sessions_spawn`, you MUST set a timeout of at least 5 minutes to ensure the background monitor completes. The poll operation can take up to 3 minutes.
+
+Example spawn call syntax (adjust to match your OpenClaw/sessions API):
+
+```
+sessions_spawn(
+    prompt=<subagent prompt below>,
+    runTimeoutSeconds=300  # REQUIRED: 5 minutes (300s) to cover 3-min poll + buffer
+)
+```
+
+If your sessions API uses different parameter names (e.g., `timeout`, `maxDuration`), use the equivalent parameter to set a 5-minute (300 second) timeout.
+
+---
+
+**Subagent prompt** (it has NO conversation context):
 
 ```
 You are a background monitor for a diagram generation task.
@@ -174,48 +189,71 @@ Render Script: {render_script_path}
 Export Format: {export_format}
 User Language: {user_language}
 
+IMPORTANT: This monitoring task may take up to 3 minutes. Ensure your execution timeout is at least 5 minutes.
+
 CRITICAL RULES:
 - You MUST reply in {user_language}.
-- You send ONLY the rendered PNG image to the user. Do NOT send any text messages.
-- Your final output will be relayed by the main assistant as the text notification.
-  Write it as a clean, user-friendly message.
+- After completing ALL steps (including sending messages to the user), your FINAL reply
+  MUST be EXACTLY "ANNOUNCE_SKIP" — nothing else. This prevents the main session from
+  sending duplicate messages.
 - Do NOT say anything beyond what is specified below. No greetings, no extra commentary.
 - NEVER include technical terms like "task_id", "file_token", "poll", "sub-agent",
   "API", "script", "workspace", "downloaded to", file paths, or status labels
-  in your final output.
+  in any message to the user.
 
 Your job:
 1. Run: python3 {script_path} poll --task-id {task_id} --output ~/.openclaw/workspace/
-   (Download is needed for rendering.)
+   This command blocks for up to 3 minutes waiting for task completion.
+   Download is needed for rendering.
 
 2. On success:
    a. Get the local file path from [RESULT] Local file: line.
    b. Render to PNG:
       - For drawio: bash {render_script_path} drawio <local_file> <local_file_without_ext>.png
       - For excalidraw: bash {render_script_path} excalidraw <local_file> <local_file_without_ext>.png
-   c. Send ONLY the rendered PNG image to the user (no text). Choose the correct method:
-      - Feishu/Lark: Upload image via lark-mcp image API, then send image message.
+   c. Send the rendered PNG image to the user. Choose the correct method:
+      - Feishu/Lark: Two-step process via OpenAPI —
+        Step 1 (Upload image): POST https://open.feishu.cn/open-apis/im/v1/images
+          curl -X POST 'https://open.feishu.cn/open-apis/im/v1/images' \
+            -H 'Authorization: Bearer <tenant_access_token>' \
+            -F 'image_type=message' \
+            -F 'image=@<local_file_without_ext>.png'
+          This returns an image_key.
+        Step 2 (Send image message): POST https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=chat_id
+          Request body:
+          {
+            "receive_id": "<chat_id>",
+            "msg_type": "image",
+            "content": "{\"image_key\":\"<image_key>\"}"
+          }
       - Other platforms: Send via message tool with filePath.
       The user must see the image inline — not a path or link.
-   d. Final output must be EXACTLY like:
+   d. Send a text message to the user (in {user_language}, natural tone):
       "Your diagram is ready! You can view and edit it online here: {task_url}"
+   e. Reply EXACTLY: ANNOUNCE_SKIP
 
-3. On render failure, final output:
-   "The diagram has been generated but I couldn't render a preview.
-    You can view and edit it here: {task_url}"
+3. On render failure:
+   a. Send a text message to the user (in {user_language}):
+      "The diagram has been generated but I couldn't render a preview.
+       You can view and edit it here: {task_url}"
+   b. Reply EXACTLY: ANNOUNCE_SKIP
 
-4. On task failure, final output:
-   "Unfortunately the diagram generation didn't complete successfully.
-    You can check the details here: {task_url}"
+4. On task failure:
+   a. Send a text message to the user (in {user_language}):
+      "Unfortunately the diagram generation didn't complete successfully.
+       You can check the details here: {task_url}"
+   b. Reply EXACTLY: ANNOUNCE_SKIP
 
-5. On timeout (3 min), final output:
-   "The diagram is taking a bit longer than expected.
-    You can check the progress here: {task_url}"
+5. On timeout (3 min):
+   a. Send a text message to the user (in {user_language}):
+      "The diagram is taking a bit longer than expected.
+       You can check the progress here: {task_url}"
+   b. Reply EXACTLY: ANNOUNCE_SKIP
 ```
 
 Do NOT wait for the background monitor. Do NOT tell the user you launched it.
 
-**Handling the completion event.** The background monitor sends the rendered PNG directly but no text. Its completion output is a user-friendly message. Simply relay it — do NOT add extra information or technical details. The completion event may arrive with a system-generated prefix (e.g., "✅ Subagent main finished"). Strip any such prefix before relaying — only send the background monitor's actual output text to the user.
+**Handling the completion event.** The background monitor sends the rendered PNG and notification to the user directly. It replies `ANNOUNCE_SKIP` as its final output, which means the main session should NOT relay or duplicate any message. If you receive a completion event with `ANNOUNCE_SKIP`, simply ignore it — the user has already been notified.
 
 #### Fallback (no background monitoring)
 

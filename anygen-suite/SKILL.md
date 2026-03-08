@@ -80,7 +80,7 @@ After creating a task, you MUST start background monitoring via `sessions_spawn`
 2. Tell user: (a) generation started, (b) the online link, (c) ~10–15 min, free to do other things.
 3. Launch background monitor via `sessions_spawn` (Phase 4). Do NOT announce this to the user.
 4. Continue the conversation — do NOT wait.
-5. Background monitor sends preview/result; relay its completion output. No duplication.
+5. The background monitor handles sending preview/result and notifying the user directly, then replies `ANNOUNCE_SKIP` so the main session does NOT relay anything further.
 
 ## Communication Style
 
@@ -199,7 +199,22 @@ python3 scripts/anygen.py create \
 
 > **Requires `sessions_spawn`.** If unavailable, skip to **Fallback** below.
 
-Spawn via `sessions_spawn` with the following prompt (it has NO conversation context).
+**CRITICAL**: When calling `sessions_spawn`, you MUST set a timeout of at least 25 minutes to ensure the background monitor completes. The poll operation can take up to 20 minutes.
+
+Example spawn call syntax (adjust to match your OpenClaw/sessions API):
+
+```
+sessions_spawn(
+    prompt=<subagent prompt below>,
+    runTimeoutSeconds=1500  # REQUIRED: 25 minutes (1500s) to cover 20-min poll + buffer
+)
+```
+
+If your sessions API uses different parameter names (e.g., `timeout`, `maxDuration`), use the equivalent parameter to set a 25-minute (1500 second) timeout.
+
+---
+
+**Subagent prompt** (it has NO conversation context).
 You MUST fill in all `{...}` variables before passing.
 
 ```
@@ -212,61 +227,107 @@ Operation: {operation}
 Script: {script_path}
 Render Script: {render_script_path}
 Export Format: {export_format}
+Thumbnail Output: {thumbnail_output_dir}
 User Language: {user_language}
+
+IMPORTANT: This monitoring task may take up to 20 minutes. Ensure your execution timeout is at least 25 minutes.
 
 CRITICAL RULES:
 - You MUST reply in {user_language}.
-- Your final output will be relayed by the main assistant as the text notification.
-  Write it as a clean, user-friendly message.
+- After completing ALL steps (including sending messages to the user), your FINAL reply
+  MUST be EXACTLY "ANNOUNCE_SKIP" — nothing else. This prevents the main session from
+  sending duplicate messages.
 - Do NOT say anything beyond what is specified below. No greetings, no extra commentary.
 - NEVER include technical terms like "task_id", "file_token", "poll", "sub-agent",
   "API", "script", "workspace", "downloaded to", file paths, or status labels
-  in your final output.
+  in any message to the user.
 
 Your job depends on the operation type:
 
 ## For slide / doc operations:
 1. Run: python3 {script_path} poll --task-id {task_id}
-   (Do NOT pass --output — the file will only be downloaded when the user requests it.)
+   This command blocks for up to 20 minutes waiting for task completion.
+   Do NOT pass --output — the file will only be downloaded when the user requests it.
 2. On success:
    a. Download thumbnail:
-      python3 {script_path} thumbnail --task-id {task_id} --output /tmp/
-   b. Send ONLY the preview image to the user (no text). Choose the correct method:
-      - Feishu/Lark: Upload image via lark-mcp image API, then send image message.
+      python3 {script_path} thumbnail --task-id {task_id} --output {thumbnail_output_dir}
+   b. Send the thumbnail preview image to the user. Choose the correct method:
+      - Feishu/Lark: Two-step process via OpenAPI —
+        Step 1 (Upload image): POST https://open.feishu.cn/open-apis/im/v1/images
+          curl -X POST 'https://open.feishu.cn/open-apis/im/v1/images' \
+            -H 'Authorization: Bearer <tenant_access_token>' \
+            -F 'image_type=message' \
+            -F 'image=@{thumbnail_output_dir}/thumbnail.png'
+          This returns an image_key.
+        Step 2 (Send image message): POST https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=chat_id
+          Request body:
+          {
+            "receive_id": "<chat_id>",
+            "msg_type": "image",
+            "content": "{\"image_key\":\"<image_key>\"}"
+          }
       - Other platforms: Send via message tool with filePath.
-   c. Final output: "Your content is ready! If you'd like me to send you the file, just let me know."
+   c. Send a text message to the user (in {user_language}, natural tone):
+      "Your content is ready! If you'd like me to send you the file, just let me know."
+   d. Reply EXACTLY: ANNOUNCE_SKIP
 
 ## For smart_draw operation:
 1. Run: python3 {script_path} poll --task-id {task_id} --output ~/.openclaw/workspace/
+   This command blocks for up to 20 minutes waiting for task completion.
 2. On success:
    a. Get the local file path from [RESULT] Local file: line.
    b. Render to PNG:
       - For drawio: bash {render_script_path} drawio <local_file> <local_file_without_ext>.png
       - For excalidraw: bash {render_script_path} excalidraw <local_file> <local_file_without_ext>.png
-   c. Send ONLY the rendered PNG image to the user (no text).
-   d. Final output: "Your diagram is ready! You can view and edit it online here: {task_url}"
-   e. If rendering fails, final output:
-      "The diagram has been generated but I couldn't render a preview.
+   c. Send the rendered PNG image to the user. Choose the correct method:
+      - Feishu/Lark: Two-step process via OpenAPI —
+        Step 1 (Upload image): POST https://open.feishu.cn/open-apis/im/v1/images
+          curl -X POST 'https://open.feishu.cn/open-apis/im/v1/images' \
+            -H 'Authorization: Bearer <tenant_access_token>' \
+            -F 'image_type=message' \
+            -F 'image=@<local_file_without_ext>.png'
+          This returns an image_key.
+        Step 2 (Send image message): POST https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=chat_id
+          Request body:
+          {
+            "receive_id": "<chat_id>",
+            "msg_type": "image",
+            "content": "{\"image_key\":\"<image_key>\"}"
+          }
+      - Other platforms: Send via message tool with filePath.
+   d. Send a text message to the user (in {user_language}, natural tone):
+      "Your diagram is ready! You can view and edit it online here: {task_url}"
+   e. Reply EXACTLY: ANNOUNCE_SKIP
+   f. If rendering fails:
+      Send text: "The diagram has been generated but I couldn't render a preview.
        You can view and edit it here: {task_url}"
+      Reply EXACTLY: ANNOUNCE_SKIP
 
 ## For chat / storybook / data_analysis / website operations:
 1. Run: python3 {script_path} poll --task-id {task_id}
-   (No --output needed — results are viewed online.)
-2. On success, final output:
-   "Your content is ready! You can view it here: {task_url}"
+   This command blocks for up to 20 minutes waiting for task completion.
+   No --output needed — results are viewed online.
+2. On success:
+   a. Send a text message to the user (in {user_language}, natural tone):
+      "Your content is ready! You can view it here: {task_url}"
+   b. Reply EXACTLY: ANNOUNCE_SKIP
 
 ## Common error handling (all operations):
-- On failure, final output:
-  "Unfortunately the generation didn't complete successfully.
-   You can check the details here: {task_url}"
-- On timeout (20 min), final output:
-  "The generation is taking a bit longer than expected.
-   You can check the progress here: {task_url}"
+- On failure:
+  a. Send a text message to the user (in {user_language}):
+     "Unfortunately the generation didn't complete successfully.
+      You can check the details here: {task_url}"
+  b. Reply EXACTLY: ANNOUNCE_SKIP
+- On timeout (20 min):
+  a. Send a text message to the user (in {user_language}):
+     "The generation is taking a bit longer than expected.
+      You can check the progress here: {task_url}"
+  b. Reply EXACTLY: ANNOUNCE_SKIP
 ```
 
 Do NOT wait for the background monitor. Do NOT tell the user you launched it.
 
-**Handling the completion event.** The background monitor may send preview images directly but no text. Its completion output is a user-friendly message. Simply relay it — do NOT add extra information or technical details. The completion event may arrive with a system-generated prefix (e.g., "✅ Subagent main finished"). Strip any such prefix before relaying — only send the background monitor's actual output text to the user.
+**Handling the completion event.** The background monitor sends preview/result and notification to the user directly. It replies `ANNOUNCE_SKIP` as its final output, which means the main session should NOT relay or duplicate any message. If you receive a completion event with `ANNOUNCE_SKIP`, simply ignore it — the user has already been notified.
 
 #### When the User Requests the File (slide / doc only)
 
@@ -276,7 +337,24 @@ Download, then send via the appropriate method for your IM environment:
 python3 {script_path} download --task-id {task_id} --output ~/.openclaw/workspace/
 ```
 
-- **Feishu/Lark**: Upload file via lark-mcp file API, then send as file message.
+- **Feishu/Lark**: Two-step process via OpenAPI —
+  Step 1 (Upload file): `POST https://open.feishu.cn/open-apis/im/v1/files`
+    ```
+    curl -X POST 'https://open.feishu.cn/open-apis/im/v1/files' \
+      -H 'Authorization: Bearer <tenant_access_token>' \
+      -F 'file_type=stream' \
+      -F 'file=@~/.openclaw/workspace/<output_file>' \
+      -F 'file_name=<output_file>'
+    ```
+    This returns a `file_key`. (Note: use `file_type="ppt"` for PPTX, `file_type="stream"` for DOCX.)
+  Step 2 (Send file message): `POST https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=chat_id`
+    ```json
+    {
+      "receive_id": "<chat_id>",
+      "msg_type": "file",
+      "content": "{\"file_key\":\"<file_key>\"}"
+    }
+    ```
 - **Other platforms**: Send via message tool with filePath.
 
 Follow up naturally: "Here's your file! You can also edit online at [Task URL]."

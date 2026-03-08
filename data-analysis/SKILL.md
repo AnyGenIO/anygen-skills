@@ -57,7 +57,7 @@ After creating a task, you MUST start background monitoring via `sessions_spawn`
 2. Tell user: (a) generation started, (b) the online link, (c) ~10–15 min, free to do other things.
 3. Launch background monitor via `sessions_spawn` (Phase 4). Do NOT announce this to the user.
 4. Continue the conversation — do NOT wait.
-5. Background monitor notifies when done; relay its output. No duplication.
+5. The background monitor handles notifying the user directly, then replies `ANNOUNCE_SKIP` so the main session does NOT relay anything further.
 
 ## Communication Style
 
@@ -168,7 +168,22 @@ python3 scripts/anygen.py create \
 
 #### Background Monitoring (preferred)
 
-Spawn via `sessions_spawn` with the following prompt (it has NO conversation context):
+**CRITICAL**: When calling `sessions_spawn`, you MUST set a timeout of at least 25 minutes to ensure the background monitor completes. The poll operation can take up to 20 minutes.
+
+Example spawn call syntax (adjust to match your OpenClaw/sessions API):
+
+```
+sessions_spawn(
+    prompt=<subagent prompt below>,
+    runTimeoutSeconds=1500  # REQUIRED: 25 minutes (1500s) to cover 20-min poll + buffer
+)
+```
+
+If your sessions API uses different parameter names (e.g., `timeout`, `maxDuration`), use the equivalent parameter to set a 25-minute (1500 second) timeout.
+
+---
+
+**Subagent prompt** (it has NO conversation context):
 
 ```
 You are a background monitor for a data analysis task.
@@ -179,33 +194,43 @@ Task URL: {task_url}
 Script: {script_path}
 User Language: {user_language}
 
+IMPORTANT: This monitoring task may take up to 20 minutes. Ensure your execution timeout is at least 25 minutes.
+
 CRITICAL RULES:
 - You MUST reply in {user_language}.
-- Your final output will be relayed by the main assistant as the text notification.
-  Write it as a clean, user-friendly message.
+- After completing ALL steps (including sending messages to the user), your FINAL reply
+  MUST be EXACTLY "ANNOUNCE_SKIP" — nothing else. This prevents the main session from
+  sending duplicate messages.
 - Do NOT say anything beyond what is specified below. No greetings, no extra commentary.
 - NEVER include technical terms like "task_id", "poll", "sub-agent", "API", "script",
-  file paths, or status labels in your final output.
+  file paths, or status labels in any message to the user.
 
 Your job:
 1. Run: python3 {script_path} poll --task-id {task_id}
-   (No --output needed — results are viewed online.)
+   This command blocks for up to 20 minutes waiting for task completion.
+   No --output needed — results are viewed online.
 
-2. On success, final output:
-   "Your data analysis is ready! You can view the charts and results here: {task_url}"
+2. On success:
+   a. Send a text message to the user (in {user_language}, natural tone):
+      "Your data analysis is ready! You can view the charts and results here: {task_url}"
+   b. Reply EXACTLY: ANNOUNCE_SKIP
 
-3. On failure, final output:
-   "Unfortunately the analysis didn't complete successfully.
-    You can check the details here: {task_url}"
+3. On failure:
+   a. Send a text message to the user (in {user_language}):
+      "Unfortunately the analysis didn't complete successfully.
+       You can check the details here: {task_url}"
+   b. Reply EXACTLY: ANNOUNCE_SKIP
 
-4. On timeout (20 min), final output:
-   "The analysis is taking a bit longer than expected.
-    You can check the progress here: {task_url}"
+4. On timeout (20 min):
+   a. Send a text message to the user (in {user_language}):
+      "The analysis is taking a bit longer than expected.
+       You can check the progress here: {task_url}"
+   b. Reply EXACTLY: ANNOUNCE_SKIP
 ```
 
 Do NOT wait for the background monitor. Do NOT tell the user you launched it.
 
-**Handling the completion event.** Simply relay the background monitor's output — do NOT add extra information or technical details. Strip any system-generated prefix (e.g., "✅ Subagent main finished") before relaying.
+**Handling the completion event.** The background monitor sends the notification to the user directly. It replies `ANNOUNCE_SKIP` as its final output, which means the main session should NOT relay or duplicate any message. If you receive a completion event with `ANNOUNCE_SKIP`, simply ignore it — the user has already been notified.
 
 #### Fallback (no background monitoring)
 
