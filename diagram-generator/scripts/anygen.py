@@ -10,6 +10,9 @@ Usage:
     python3 anygen.py run --api-key sk-xxx --operation smart_draw --prompt "..." --output ./
     python3 anygen.py upload --api-key sk-xxx --file ./document.pdf
     python3 anygen.py prepare --api-key sk-xxx --message "I need a diagram about system architecture"
+    python3 anygen.py send-message --task-id task_xxx --message "Add a cache layer node"
+    python3 anygen.py get-messages --task-id task_xxx --limit 10
+    python3 anygen.py get-messages --task-id task_xxx --wait
 """
 
 import argparse
@@ -619,6 +622,136 @@ def download_thumbnail(api_key, task_id, output_dir, extra_headers=None):
     return False
 
 
+# ============ Multi-turn Conversation ============
+
+def send_message(api_key, task_id, content, files=None, extra_headers=None):
+    """Send a message to an existing task. Returns immediately."""
+    auth_token = make_auth_token(api_key)
+
+    headers = {
+        "Authorization": auth_token,
+        "Content-Type": "application/json",
+    }
+    if extra_headers:
+        headers.update(extra_headers)
+
+    body = {"auth_token": auth_token, "content": content}
+    if files:
+        body["files"] = files
+
+    try:
+        log_info(f"Sending message to task: {task_id}")
+        response = requests.post(
+            f"{API_BASE}/v1/openapi/tasks/{task_id}/messages",
+            json=body,
+            headers=headers,
+            timeout=30,
+        )
+        log_request_id(response)
+        if response.status_code != 200:
+            log_error(f"HTTP error: {response.status_code}")
+            log_error(f"Response: {response.text[:500]}")
+            return None
+
+        result = response.json()
+    except requests.RequestException as e:
+        log_error(f"Request failed: {e}")
+        return None
+    except json.JSONDecodeError:
+        log_error(f"Response parse failed: {response.text[:500]}")
+        return None
+
+    msg = result.get("message", {})
+    status = result.get("status", "unknown")
+    log_success(f"Message sent! id={msg.get('id')}, status={status}")
+    print(f"Message ID: {msg.get('id')}")
+    print(f"Status: {status}")
+    return result
+
+
+def get_messages(api_key, task_id, limit=10, cursor=None, extra_headers=None):
+    """Get messages for a task. Supports polling and pagination."""
+    auth_token = make_auth_token(api_key)
+
+    headers = {"Authorization": auth_token}
+    if extra_headers:
+        headers.update(extra_headers)
+
+    params = {"limit": limit}
+    if cursor:
+        params["cursor"] = cursor
+
+    try:
+        response = requests.get(
+            f"{API_BASE}/v1/openapi/tasks/{task_id}/messages",
+            headers=headers,
+            params=params,
+            timeout=30,
+        )
+        log_request_id(response)
+        if response.status_code != 200:
+            log_error(f"HTTP error: {response.status_code}")
+            log_error(f"Response: {response.text[:500]}")
+            return None
+
+        result = response.json()
+    except requests.RequestException as e:
+        log_error(f"Request failed: {e}")
+        return None
+    except json.JSONDecodeError:
+        log_error(f"Response parse failed: {response.text[:500]}")
+        return None
+
+    return result
+
+
+def poll_messages(api_key, task_id, since_message_id, limit=10,
+                  max_time=MAX_POLL_TIME, extra_headers=None):
+    """Poll messages until an assistant reply is completed after since_message_id."""
+    log_info(f"Waiting for AI reply on task: {task_id}")
+
+    start_time = time.time()
+    last_heartbeat = start_time
+
+    while True:
+        elapsed = time.time() - start_time
+        if elapsed > max_time:
+            log_error(f"Polling timeout ({max_time}s)")
+            return None
+
+        result = get_messages(api_key, task_id, limit=limit, extra_headers=extra_headers)
+        if not result:
+            time.sleep(POLL_INTERVAL)
+            continue
+
+        messages = result.get("messages", [])
+        task_snapshot = result.get("task_snapshot", {})
+
+        # Find the latest assistant message newer than since_message_id
+        for msg in messages:
+            if (msg.get("role") == "assistant"
+                    and msg.get("id", 0) > since_message_id
+                    and msg.get("status") == "completed"):
+                log_success("AI reply received!")
+                print(f"[REPLY] {msg.get('content', '')}")
+                if task_snapshot:
+                    snap_status = task_snapshot.get("status", "")
+                    can_export = task_snapshot.get("can_export", False)
+                    print(f"[SNAPSHOT] status={snap_status}, can_export={can_export}")
+                return result
+
+        now = time.time()
+        if now - last_heartbeat >= 30:
+            ts = datetime.now().strftime("%H:%M:%S")
+            mins = int(elapsed) // 60
+            secs = int(elapsed) % 60
+            snap_status = task_snapshot.get("status", "unknown")
+            print(f"[HEARTBEAT] {ts} | elapsed {mins}m{secs:02d}s | task_status: {snap_status}", flush=True)
+            last_heartbeat = now
+
+        time.sleep(POLL_INTERVAL)
+
+
 def run_full_workflow(api_key, operation, prompt, output_dir, extra_headers=None,
                       style=None, file_tokens=None, **kwargs):
     """Run the full workflow: create -> poll -> download."""
@@ -725,6 +858,30 @@ Examples:
     thumbnail_parser.add_argument("--task-id", required=True, help="Task ID")
     thumbnail_parser.add_argument("--output", required=True, help="Output directory")
 
+
+    # ---- send-message command ----
+    send_msg_parser = subparsers.add_parser("send-message",
+        help="Send a message to an existing task (multi-turn conversation)")
+    add_common_args(send_msg_parser)
+    send_msg_parser.add_argument("--task-id", required=True, help="Task ID")
+    send_msg_parser.add_argument("--message", "-m", required=True, help="Message content")
+    send_msg_parser.add_argument("--file", action="append", dest="files",
+                                  help="File path to upload and attach (can be repeated)")
+    send_msg_parser.add_argument("--file-token", action="append", dest="file_tokens",
+                                  help="File token from upload (can be repeated)")
+
+    # ---- get-messages command ----
+    get_msgs_parser = subparsers.add_parser("get-messages",
+        help="Get messages for a task (supports polling and pagination)")
+    add_common_args(get_msgs_parser)
+    get_msgs_parser.add_argument("--task-id", required=True, help="Task ID")
+    get_msgs_parser.add_argument("--limit", type=int, default=10,
+                                  help="Number of messages to return (default: 10, max: 100)")
+    get_msgs_parser.add_argument("--cursor", help="Pagination cursor")
+    get_msgs_parser.add_argument("--wait", action="store_true",
+                                  help="Block and poll until a new assistant reply is completed")
+    get_msgs_parser.add_argument("--since-id", type=int, default=0,
+                                  help="Wait for assistant reply with id greater than this (used with --wait)")
 
     # ---- run command ----
     run_parser = subparsers.add_parser("run", help="Full workflow: create -> poll -> download")
@@ -891,6 +1048,77 @@ Examples:
     elif args.command == "thumbnail":
         success = download_thumbnail(api_key, args.task_id, args.output, extra_headers=extra_headers)
         sys.exit(0 if success else 1)
+
+    elif args.command == "send-message":
+        # Upload files if provided and build file references
+        files_payload = []
+        if args.file_tokens:
+            for ft in args.file_tokens:
+                files_payload.append({"file_token": ft})
+        if args.files:
+            for file_path in args.files:
+                log_info(f"Uploading file: {file_path}")
+                token = upload_file(api_key, file_path, extra_headers=extra_headers)
+                if token:
+                    files_payload.append({"file_token": token})
+                else:
+                    log_error(f"File upload failed, skipping: {file_path}")
+
+        result = send_message(
+            api_key=api_key,
+            task_id=args.task_id,
+            content=args.message,
+            files=files_payload if files_payload else None,
+            extra_headers=extra_headers,
+        )
+        sys.exit(0 if result else 1)
+
+    elif args.command == "get-messages":
+        if args.wait:
+            result = poll_messages(
+                api_key=api_key,
+                task_id=args.task_id,
+                since_message_id=args.since_id,
+                limit=args.limit,
+                extra_headers=extra_headers,
+            )
+            sys.exit(0 if result else 1)
+        else:
+            result = get_messages(
+                api_key=api_key,
+                task_id=args.task_id,
+                limit=args.limit,
+                cursor=args.cursor,
+                extra_headers=extra_headers,
+            )
+            if result:
+                messages = result.get("messages", [])
+                task_snapshot = result.get("task_snapshot", {})
+                has_more = result.get("has_more", False)
+
+                print(f"\n{'=' * 60}")
+                print(f"Messages ({len(messages)}):")
+                print(f"{'=' * 60}")
+                for msg in messages:
+                    role = msg.get("role", "unknown")
+                    content = msg.get("content", "")
+                    msg_id = msg.get("id", "?")
+                    status = msg.get("status", "?")
+                    print(f"  [{role}] (id={msg_id}, status={status}): {content[:200]}")
+
+                if task_snapshot:
+                    print(f"\nTask Snapshot:")
+                    print(f"  status={task_snapshot.get('status')}")
+                    print(f"  content_version={task_snapshot.get('content_version')}")
+                    print(f"  can_export={task_snapshot.get('can_export')}")
+
+                if has_more:
+                    next_cursor = result.get("cursor", "")
+                    print(f"\nMore messages available. Use --cursor {next_cursor}")
+
+                sys.exit(0)
+            else:
+                sys.exit(1)
 
     elif args.command == "run":
         success = run_full_workflow(
