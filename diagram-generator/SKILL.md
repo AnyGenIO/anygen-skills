@@ -61,7 +61,7 @@ Generate any kind of diagram or visual chart from natural language using AnyGen 
 
 - Python3 and `requests`: `pip3 install requests`
 - Node.js v18+ (for PNG rendering, auto-installed on first run)
-- AnyGen API Key (`sk-xxx`) — [Get one](https://www.anygen.io/home?auto_create_openclaw_key=1) → Setting → Integration
+- AnyGen API Key (`sk-xxx`) — [Get one](https://www.anygen.io/home?auto_create_openclaw_key=1)
 - Configure once: `python3 scripts/anygen.py config set api_key "sk-xxx"`
 
 > All `scripts/` paths below are relative to this skill's installation directory.

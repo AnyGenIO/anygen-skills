@@ -45,7 +45,7 @@ Generate long-form research reports covering market overview, trends, competitor
 ## Prerequisites
 
 - Python3 and `requests`: `pip3 install requests`
-- AnyGen API Key (`sk-xxx`) — [Get one](https://www.anygen.io/home?auto_create_openclaw_key=1) → Setting → Integration
+- AnyGen API Key (`sk-xxx`) — [Get one](https://www.anygen.io/home?auto_create_openclaw_key=1)
 - Configure once: `python3 scripts/anygen.py config set api_key "sk-xxx"`
 
 > All `scripts/` paths below are relative to this skill's installation directory.
