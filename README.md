@@ -16,7 +16,7 @@ A **modular collection** of AI-powered content generation skills using AnyGen. E
 | `data-analysis` | Data analysis and visualization |
 | `deep-research` | Long-form research reports |
 | `financial-research` | Earnings and financial analysis |
-| `storybook-generator` | Visual narratives and storyboards |
+| `storybook-generator` | Visual narratives and Storybook |
 | `website-generator` | Landing pages and web development |
 
 ## Installation

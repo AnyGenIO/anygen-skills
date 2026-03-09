@@ -635,7 +635,7 @@ def send_message(api_key, task_id, content, files=None, extra_headers=None):
     if extra_headers:
         headers.update(extra_headers)
 
-    body = {"content": content}
+    body = {"auth_token": auth_token, "content": content}
     if files:
         body["files"] = files
 
