@@ -693,7 +693,7 @@ Examples:
     create_parser = subparsers.add_parser("create", help="Create a generation task")
     add_common_args(create_parser)
     create_parser.add_argument("--operation", "-o", required=True,
-                               choices=["slide", "doc", "smart_draw", "storybook", "data_analysis", "website", "finance", "deep_research"],
+                               choices=["slide", "doc", "smart_draw", "storybook", "data_analysis", "website", "finance", "deep_research", "ai_designer"],
                                help="Operation type")
     create_parser.add_argument("--prompt", "-p", required=True, help="Content prompt")
     create_parser.add_argument("--language", "-l", help="Language (zh-CN, en-US)")
@@ -730,7 +730,7 @@ Examples:
     run_parser = subparsers.add_parser("run", help="Full workflow: create -> poll -> download")
     add_common_args(run_parser)
     run_parser.add_argument("--operation", "-o", required=True,
-                           choices=["slide", "doc", "smart_draw", "storybook", "data_analysis", "website", "finance", "deep_research"],
+                           choices=["slide", "doc", "smart_draw", "storybook", "data_analysis", "website", "finance", "deep_research", "ai_designer"],
                            help="Operation type")
     run_parser.add_argument("--prompt", "-p", required=True, help="Content prompt")
     run_parser.add_argument("--language", "-l", help="Language (zh-CN, en-US)")

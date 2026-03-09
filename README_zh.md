@@ -18,6 +18,7 @@
 | `data-analysis` | 数据分析和可视化 |
 | `deep-research` | 深度调研报告 |
 | `financial-research` | 财报和金融分析 |
+| `image-generator` | AI 图片生成 |
 | `storybook-generator` | 故事板和视觉叙事 |
 | `website-generator` | 落地页和网站开发 |
 
@@ -77,6 +78,7 @@ anygen-skills/
 ├── data-analysis/        # 数据分析
 ├── deep-research/        # 调研报告
 ├── financial-research/   # 财务分析
+├── image-generator/      # AI 图片生成
 ├── storybook-generator/  # 故事板
 └── website-generator/    # 网站开发
 ```
