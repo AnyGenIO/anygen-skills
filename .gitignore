@@ -8,4 +8,3 @@ package-lock.json
 .venv/
 .idea/
 log/
-OPENAPI_MULTI_TURN_DESIGN_V3.md
