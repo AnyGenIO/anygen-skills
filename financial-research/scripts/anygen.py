@@ -3,11 +3,11 @@
 AnyGen OpenAPI Client
 
 Usage:
-    python3 anygen.py create --api-key sk-xxx --operation chat --prompt "..."
+    python3 anygen.py create --api-key sk-xxx --operation finance --prompt "..."
     python3 anygen.py poll --api-key sk-xxx --task-id task_xxx
     python3 anygen.py thumbnail --api-key sk-xxx --task-id task_xxx --output /tmp/
     python3 anygen.py download --api-key sk-xxx --task-id task_xxx --output ./
-    python3 anygen.py run --api-key sk-xxx --operation chat --prompt "..." --output ./
+    python3 anygen.py run --api-key sk-xxx --operation finance --prompt "..." --output ./
     python3 anygen.py upload --api-key sk-xxx --file ./document.pdf
     python3 anygen.py prepare --api-key sk-xxx --message "I need to analyze NVIDIA earnings"
 """
@@ -320,7 +320,7 @@ def run_prepare_interactive(api_key, initial_message, file_tokens=None,
         print("You can create the task with:")
         cmd_parts = [
             "python3 anygen.py create",
-            f"--operation {suggested.get('operation', 'chat')}",
+            f"--operation {suggested.get('operation', 'finance')}",
             f"--prompt \"{suggested.get('prompt', '')}\"",
         ]
         for ft in (suggested.get("file_tokens") or []):
@@ -644,7 +644,7 @@ def main():
         epilog="""
 Examples:
   # Quick mode: create a financial research task directly
-  python3 anygen.py create -o chat -p "Analyze NVIDIA's latest earnings report"
+  python3 anygen.py create -o finance -p "Analyze NVIDIA's latest earnings report"
 
   # Dialogue mode: analyze requirements first
   python3 anygen.py prepare --message "I need to analyze Tesla's Q4 financials"
@@ -653,10 +653,10 @@ Examples:
   python3 anygen.py upload --file ./earnings.pdf
 
   # Create task with uploaded file tokens
-  python3 anygen.py create -o chat -p "Analyze this earnings report" --file-token tk_xxx
+  python3 anygen.py create -o finance -p "Analyze this earnings report" --file-token tk_xxx
 
   # Full workflow: create -> poll -> download
-  python3 anygen.py run -o chat -p "NVIDIA earnings analysis" --output ./
+  python3 anygen.py run -o finance -p "NVIDIA earnings analysis" --output ./
         """
     )
 
@@ -693,7 +693,7 @@ Examples:
     create_parser = subparsers.add_parser("create", help="Create a generation task")
     add_common_args(create_parser)
     create_parser.add_argument("--operation", "-o", required=True,
-                               choices=["chat", "slide", "doc", "storybook", "data_analysis", "website", "smart_draw"],
+                               choices=["slide", "doc", "smart_draw", "storybook", "data_analysis", "website", "finance", "deep_research"],
                                help="Operation type")
     create_parser.add_argument("--prompt", "-p", required=True, help="Content prompt")
     create_parser.add_argument("--language", "-l", help="Language (zh-CN, en-US)")
@@ -730,7 +730,7 @@ Examples:
     run_parser = subparsers.add_parser("run", help="Full workflow: create -> poll -> download")
     add_common_args(run_parser)
     run_parser.add_argument("--operation", "-o", required=True,
-                           choices=["chat", "slide", "doc", "storybook", "data_analysis", "website", "smart_draw"],
+                           choices=["slide", "doc", "smart_draw", "storybook", "data_analysis", "website", "finance", "deep_research"],
                            help="Operation type")
     run_parser.add_argument("--prompt", "-p", required=True, help="Content prompt")
     run_parser.add_argument("--language", "-l", help="Language (zh-CN, en-US)")

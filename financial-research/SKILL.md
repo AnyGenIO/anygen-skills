@@ -129,7 +129,7 @@ If the user requests adjustments, call `prepare` again with the modification, re
 
 ```bash
 python3 scripts/anygen.py create \
-  --operation chat \
+  --operation finance \
   --prompt "<prompt from suggested_task_params>" \
   --file-token tk_abc123
 # Output: Task ID: task_xxx, Task URL: https://...
@@ -221,12 +221,12 @@ Tell the user: "I've started the financial analysis. It usually takes about 10â€
 ### create
 
 ```bash
-python3 scripts/anygen.py create --operation chat --prompt "..." [options]
+python3 scripts/anygen.py create --operation finance --prompt "..." [options]
 ```
 
 | Parameter | Short | Description |
 |-----------|-------|-------------|
-| --operation | -o | **Must be `chat`** |
+| --operation | -o | **Must be `finance`** |
 | --prompt | -p | Research request description |
 | --file-token | | File token from upload (repeatable) |
 | --language | -l | Language (zh-CN / en-US) |
