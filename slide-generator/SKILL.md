@@ -34,7 +34,7 @@ Create professional slide presentations using AnyGen OpenAPI.
 - Sends task prompts and parameters to `www.anygen.io`
 - Uploads user-provided reference files to `www.anygen.io` after obtaining consent
 - Downloads generated PPTX files to `~/.openclaw/workspace/`
-- Spawns a background process (up to 20 min) to monitor progress and auto-download
+- Spawns a background process (up to 25 min) to monitor progress and auto-download
 - Reads/writes API key config at `~/.config/anygen/config.json`
 
 **What this skill does NOT do:**

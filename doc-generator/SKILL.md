@@ -2,10 +2,10 @@
 name: anygen-doc
 homepage: https://www.anygen.io
 description: "Generate structured documents with AnyGen AI. Uses dialogue mode to understand audience, purpose, and content before generating. Background-monitors progress and delivers a preview with online editing link when ready."
-env:
-  - ANYGEN_API_KEY
 requires:
   - sessions_spawn
+env:
+  - ANYGEN_API_KEY
 permissions:
   network:
     - "https://www.anygen.io"
@@ -14,6 +14,7 @@ permissions:
       - "~/.config/anygen/config.json"
     write:
       - "~/.config/anygen/config.json"
+      - "~/.openclaw/workspace/"
 ---
 
 # AI Document Generator - AnyGen
@@ -33,7 +34,7 @@ Create professional structured documents using AnyGen OpenAPI.
 - Sends task prompts and parameters to `www.anygen.io`
 - Uploads user-provided reference files to `www.anygen.io` after obtaining consent
 - Downloads generated documents (DOCX) to `~/.openclaw/workspace/`
-- Spawns a background process (up to 20 min) to monitor progress and auto-download
+- Spawns a background process (up to 25 min) to monitor progress and auto-download
 - Reads/writes API key config at `~/.config/anygen/config.json`
 
 **What this skill does NOT do:**
@@ -82,9 +83,7 @@ Additional rules:
 - Stick to the questions `prepare` returned — do not add unrelated ones.
 - Ask questions in your own voice, as if they are your own questions. Do NOT use a relaying tone like "AnyGen wants to know…" or "The system is asking…".
 
-## Document Workflow (MUST Follow)
-
-For documents, you MUST go through all 4 phases. A good document needs audience, purpose, structure, scope, and content details. Users rarely provide all of these upfront.
+## Document Workflow (MUST Follow All 4 Phases)
 
 ### Phase 1: Understand Requirements
 
@@ -120,7 +119,6 @@ Repeat until `status="ready"` with `suggested_task_params`.
 Special cases:
 - `status="ready"` on first call → proceed to Phase 2.
 - User says "just create it" → skip to Phase 3 with `create` directly.
-- Template/style reference files → upload only, do NOT extract content.
 
 ### Phase 2: Confirm with User (MANDATORY)
 
@@ -271,21 +269,6 @@ Tell the user: "I've started generating your document. It usually takes about 10
 
 ## Command Reference
 
-### prepare
-
-```bash
-python3 scripts/anygen.py prepare --message "..." [--file-token tk_xxx] [--input conv.json] [--save conv.json]
-```
-
-| Parameter | Description |
-|-----------|-------------|
-| --message, -m | User message text |
-| --file | File path to auto-upload and attach (repeatable) |
-| --file-token | File token from prior upload (repeatable) |
-| --input | Load conversation from JSON file |
-| --save | Save conversation state to JSON file |
-| --stdin | Read message from stdin |
-
 ### create
 
 ```bash
@@ -308,6 +291,21 @@ python3 scripts/anygen.py upload --file ./document.pdf
 ```
 
 Returns a `file_token`. Max 50MB. Tokens are persistent and reusable.
+
+### prepare
+
+```bash
+python3 scripts/anygen.py prepare --message "..." [--file-token tk_xxx] [--input conv.json] [--save conv.json]
+```
+
+| Parameter | Description |
+|-----------|-------------|
+| --message, -m | User message text |
+| --file | File path to auto-upload and attach (repeatable) |
+| --file-token | File token from prior upload (repeatable) |
+| --input | Load conversation from JSON file |
+| --save | Save conversation state to JSON file |
+| --stdin | Read message from stdin |
 
 ### poll
 

@@ -352,44 +352,6 @@ export async function renderDiagram(opts: RenderOptions): Promise<RenderResult> 
   }
 }
 
-/**
- * Batch-render multiple diagrams sharing one browser instance.
- */
-export async function renderDiagrams(
-  items: RenderOptions[],
-): Promise<RenderResult[]> {
-  const pw = await getPlaywright();
-  const browser = await launchBrowser(pw);
-
-  try {
-    const results: RenderResult[] = [];
-    for (const opts of items) {
-      const page = await browser.newPage();
-      const scale = validateScale(opts.scale ?? 2);
-      const background = validateHexColor(opts.background ?? '#ffffff');
-      const padding = validatePadding(opts.padding ?? 20);
-
-      let data: Buffer;
-      switch (opts.type) {
-        case 'excalidraw':
-          data = await renderExcalidraw(page, opts.content, { scale, background, padding });
-          break;
-        case 'drawio':
-          data = await renderDrawio(page, opts.content, { scale, background });
-          break;
-        default:
-          throw new Error(`Unknown diagram type: ${opts.type}`);
-      }
-
-      results.push({ data });
-      await page.close();
-    }
-    return results;
-  } finally {
-    await browser.close();
-  }
-}
-
 // ---------------------------------------------------------------------------
 // CLI
 // ---------------------------------------------------------------------------

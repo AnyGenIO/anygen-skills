@@ -2,10 +2,10 @@
 name: anygen-storybook
 homepage: https://www.anygen.io
 description: "Create storybook-style visuals with AnyGen AI. Uses dialogue mode to understand narrative, style, and audience before generating. Supporting Nano Banana pro and Nano Banana 2. Triggers: storybook, visual narrative, creative storybook, visual story."
-env:
-  - ANYGEN_API_KEY
 requires:
   - sessions_spawn
+env:
+  - ANYGEN_API_KEY
 permissions:
   network:
     - "https://www.anygen.io"
@@ -34,7 +34,7 @@ Create storybook-style visuals for narratives and slides using AnyGen OpenAPI. P
 - Sends task prompts and parameters to `www.anygen.io`
 - Uploads user-provided reference files to `www.anygen.io` after obtaining consent
 - Downloads thumbnail previews and generated files to `~/.openclaw/workspace/`
-- Spawns a background process (up to 20 min) to monitor progress and auto-download thumbnail
+- Spawns a background process (up to 25 min) to monitor progress and auto-download thumbnail
 - Reads/writes API key config at `~/.config/anygen/config.json`
 
 **What this skill does NOT do:**
@@ -83,35 +83,29 @@ Additional rules:
 - Stick to the questions `prepare` returned — do not add unrelated ones.
 - Ask questions in your own voice, as if they are your own questions. Do NOT use a relaying tone like "AnyGen wants to know…" or "The system is asking…".
 
-## Storybook Workflow (MUST Follow)
-
-For storybooks, you MUST go through all 4 phases. A good storybook needs clear narrative, visual style, and audience. Users rarely provide all of these upfront.
+## Storybook Workflow (MUST Follow All 4 Phases)
 
 ### Phase 1: Understand Requirements
 
-If the user provides files, you MUST handle them yourself before calling `prepare`:
+If the user provides files, handle them before calling `prepare`:
 
-1. **Read the file content yourself** using your own file reading capabilities. Extract key information (narrative, scenes, characters) that is relevant to creating the storybook.
-2. **Check if the file was already uploaded** in this conversation. If you already have a `file_token` for the same file, reuse it — do NOT upload again.
-3. **Inform the user and get consent** before uploading. Tell them the file will be uploaded to AnyGen's server for processing.
-4. **Upload the file** to get a `file_token` for later use in task creation.
-5. **Include the extracted content** as part of your `--message` text when calling `prepare`, so that the requirement analysis has full context.
-
-The `prepare` API does NOT read files internally. You are responsible for providing all relevant file content as text in the conversation.
+1. **Read the file** yourself. Extract key information relevant to the storybook (narrative, scenes, characters).
+2. **Reuse existing `file_token`** if the same file was already uploaded in this conversation.
+3. **Get consent** before uploading: "I'll upload your file to AnyGen for reference. This may take a moment..."
+4. **Upload** to get a `file_token`.
+5. **Include extracted content** in `--message` when calling `prepare` (the API does NOT read files internally).
 
 ```bash
-# Step 1: Tell the user you are uploading, then upload the file
 python3 scripts/anygen.py upload --file ./script.pdf
 # Output: File Token: tk_abc123
 
-# Step 2: Call prepare with extracted file content included in the message
 python3 scripts/anygen.py prepare \
-  --message "I need a storybook for a product demo video. Here is the script: [your extracted summary/content here]" \
+  --message "I need a storybook for a product demo video. Key content: [extracted summary]" \
   --file-token tk_abc123 \
   --save ./conversation.json
 ```
 
-Present the questions from `reply` naturally (see Communication Style above). Then continue the conversation with the user's answers:
+Present questions from `reply` naturally. Continue with user's answers:
 
 ```bash
 python3 scripts/anygen.py prepare \
@@ -123,50 +117,31 @@ python3 scripts/anygen.py prepare \
 Repeat until `status="ready"` with `suggested_task_params`.
 
 Special cases:
-- If the user provides very complete requirements and `status="ready"` on the first call, proceed directly to Phase 2.
-- If the user says "just create it, don't ask questions", skip prepare and go to Phase 3 with `create` directly.
+- `status="ready"` on first call → proceed to Phase 2.
+- User says "just create it" → skip to Phase 3 with `create` directly.
 
 ### Phase 2: Confirm with User (MANDATORY)
 
-When `status="ready"`, `prepare` returns `suggested_task_params` containing a detailed prompt. You MUST present this to the user for confirmation before creating the task.
+When `status="ready"`, summarize the suggested plan (narrative, visual style, frames, audience) and ask for confirmation. NEVER auto-create without explicit approval.
 
-How to present:
-1. Summarize the key aspects of the suggested plan in natural language (narrative, visual style, frames, audience).
-2. Ask the user to confirm or modify. For example: "Here is the storybook plan: [summary]. Should I go ahead, or would you like to adjust anything?"
-3. NEVER auto-create the task without the user's explicit approval.
-
-When the user requests adjustments:
-1. Call `prepare` again with the user's modification as a new message, loading the existing conversation history:
-
-```bash
-python3 scripts/anygen.py prepare \
-  --input ./conversation.json \
-  --message "<the user's modification request>" \
-  --save ./conversation.json
-```
-
-2. `prepare` will return an updated suggestion that incorporates the user's changes.
-3. Present the updated suggestion to the user again for confirmation (repeat from step 1 above).
-4. Repeat this confirm-adjust loop until the user explicitly approves. Do NOT skip confirmation after an adjustment.
+If the user requests adjustments, call `prepare` again with the modification, re-present, and repeat until approved.
 
 ### Phase 3: Create Task
-
-Once the user confirms:
 
 ```bash
 python3 scripts/anygen.py create \
   --operation storybook \
-  --prompt "<prompt from suggested_task_params, with any user modifications>" \
+  --prompt "<prompt from suggested_task_params>" \
   --file-token tk_abc123
 # Output: Task ID: task_xxx, Task URL: https://...
 ```
 
 **Immediately tell the user (natural language, NO internal terms):**
 1. Storybook is being generated.
-2. Online link: "You can follow the progress here: [URL]".
+2. Online preview/edit link: "You can follow the progress here: [URL]".
 3. Takes about **10–15 minutes** — free to do other things, you'll notify when ready.
 
-### Phase 4: Monitor and Notify
+### Phase 4: Monitor and Deliver Result
 
 > **Requires `sessions_spawn`.** If unavailable, skip to **Fallback** below.
 
@@ -262,7 +237,7 @@ Do NOT wait for the background monitor. Do NOT tell the user you launched it.
 Download, then send via the appropriate method for your IM environment:
 
 ```bash
-python3 {script_path} download --task-id {task_id} --output ~/.openclaw/workspace/
+python3 scripts/anygen.py download --task-id {task_id} --output ~/.openclaw/workspace/
 ```
 
 - **Feishu/Lark**: Two-step process via OpenAPI —
@@ -274,7 +249,7 @@ python3 {script_path} download --task-id {task_id} --output ~/.openclaw/workspac
       -F 'file=@~/.openclaw/workspace/output.pptx' \
       -F 'file_name=output.pptx'
     ```
-    This returns a `file_key`.
+    This returns a `file_key`. (Note: use `file_type="ppt"`, not `"pptx"`.)
   Step 2 (Send file message): `POST https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=chat_id`
     ```json
     {
@@ -293,6 +268,30 @@ Tell the user: "I've started generating your storybook. It usually takes about 1
 
 ## Command Reference
 
+### create
+
+```bash
+python3 scripts/anygen.py create --operation storybook --prompt "..." [options]
+```
+
+| Parameter | Short | Description |
+|-----------|-------|-------------|
+| --operation | -o | **Must be `storybook`** |
+| --prompt | -p | Storybook description |
+| --file-token | | File token from upload (repeatable) |
+| --language | -l | Language (zh-CN / en-US) |
+| --ratio | -r | Slide ratio (16:9 / 4:3) |
+| --export-format | -f | Export format: `pptx` (default) / `image` / `thumbnail` |
+| --style | -s | Style preference |
+
+### upload
+
+```bash
+python3 scripts/anygen.py upload --file ./document.pdf
+```
+
+Returns a `file_token`. Max 50MB. Tokens are persistent and reusable.
+
 ### prepare
 
 ```bash
@@ -307,28 +306,6 @@ python3 scripts/anygen.py prepare --message "..." [--file-token tk_xxx] [--input
 | --input | Load conversation from JSON file |
 | --save | Save conversation state to JSON file |
 | --stdin | Read message from stdin |
-
-### create
-
-```bash
-python3 scripts/anygen.py create --operation storybook --prompt "..." [options]
-```
-
-| Parameter | Short | Description |
-|-----------|-------|-------------|
-| --operation | -o | **Must be `storybook`** |
-| --prompt | -p | Storybook description |
-| --file-token | | File token from upload (repeatable) |
-| --language | -l | Language (zh-CN / en-US) |
-| --style | -s | Style preference |
-
-### upload
-
-```bash
-python3 scripts/anygen.py upload --file ./document.pdf
-```
-
-Returns a `file_token`. Max file size: 50MB. Tokens are persistent and reusable.
 
 ### poll
 
@@ -374,10 +351,10 @@ python3 scripts/anygen.py download --task-id task_xxx --output ./output/
 
 | Error | Solution |
 |-------|----------|
-| invalid API key | Check API Key format (sk-xxx) |
+| invalid API key | Check format (sk-xxx) |
 | operation not allowed | Contact admin for permissions |
 | prompt is required | Add --prompt parameter |
-| file size exceeds 50MB limit | Reduce file size |
+| file size exceeds 50MB | Reduce file size |
 
 ## Notes
 

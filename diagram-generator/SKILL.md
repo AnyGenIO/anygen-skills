@@ -2,10 +2,10 @@
 name: anygen-diagram
 homepage: https://www.anygen.io
 description: "Draw any diagram or visual chart with AnyGen AI: flowchart, architecture, mind map, UML, ER, sequence, class, org chart, topology, Gantt, state, data flow, whiteboard, and more. Professional or hand-drawn style. Triggers: draw/make/create diagram, chart, visualize, flowchart, mind map, UML, ER diagram, org chart, whiteboard, system diagram, relationship diagram, professional diagram, hand-drawn diagram, sketch diagram, Draw.io, Excalidraw."
-env:
-  - ANYGEN_API_KEY
 requires:
   - sessions_spawn
+env:
+  - ANYGEN_API_KEY
 permissions:
   network:
     - "https://www.anygen.io"
@@ -18,6 +18,7 @@ permissions:
       - "~/.config/anygen/config.json"
     write:
       - "~/.config/anygen/config.json"
+      - "~/.openclaw/workspace/"
       - "<skill_dir>/scripts/node_modules/"
 ---
 
@@ -41,10 +42,10 @@ Generate any kind of diagram or visual chart from natural language using AnyGen 
 **What this skill does:**
 - Sends task prompts and parameters to `www.anygen.io`
 - Uploads user-provided reference files to `www.anygen.io` after obtaining consent
-- Downloads diagram source files (.xml/.json) and renders them to PNG locally
+- Downloads diagram source files (.xml/.json) to `~/.openclaw/workspace/`, renders them to PNG, then deletes the source files
 - Fetches Excalidraw renderer from `esm.sh` and Draw.io viewer from `viewer.diagrams.net`
 - Auto-installs npm dependencies and Chromium on first diagram render (via Playwright)
-- Spawns a background process (up to 3 min) to monitor progress and auto-download
+- Spawns a background process (up to 5 min) to monitor progress and auto-download
 - Reads/writes API key config at `~/.config/anygen/config.json`
 
 **What this skill does NOT do:**
@@ -95,25 +96,24 @@ Additional rules:
 - Stick to the questions `prepare` returned — do not add unrelated ones.
 - Ask questions in your own voice, as if they are your own questions. Do NOT use a relaying tone like "AnyGen wants to know…" or "The system is asking…".
 
-## Diagram Workflow (MUST Follow)
-
-For diagrams, you MUST go through all 4 phases. A good diagram needs clear components, relationships, layers, and style. Users rarely provide all of these upfront.
+## Diagram Workflow (MUST Follow All 4 Phases)
 
 ### Phase 1: Understand Requirements
 
 If the user provides files, handle them before calling `prepare`:
 
-1. **Reuse existing `file_token`** if the same file was already uploaded in this conversation.
-2. **Get consent** before uploading: "I'll upload your file to AnyGen for reference. This may take a moment..."
-3. **Upload** to get a `file_token`.
-4. **Describe the request** in `--message` — do NOT paste raw file contents. Files are processed server-side.
+1. **Read the file** yourself. Extract key information relevant to the diagram (components, relationships, structure).
+2. **Reuse existing `file_token`** if the same file was already uploaded in this conversation.
+3. **Get consent** before uploading: "I'll upload your file to AnyGen for reference. This may take a moment..."
+4. **Upload** to get a `file_token`.
+5. **Include extracted content** in `--message` when calling `prepare` (the API does NOT read files internally).
 
 ```bash
 python3 scripts/anygen.py upload --file ./design_doc.pdf
 # Output: File Token: tk_abc123
 
 python3 scripts/anygen.py prepare \
-  --message "I need an architecture diagram based on the uploaded design doc. Please analyze and suggest a diagram layout." \
+  --message "I need an architecture diagram based on this design doc. Key content: [extracted summary]" \
   --file-token tk_abc123 \
   --save ./conversation.json
 ```
@@ -230,7 +230,9 @@ Your job:
       The user must see the image inline — not a path or link.
    d. Send a text message to the user (in {user_language}, natural tone):
       "Your diagram is ready! You can view and edit it online here: {task_url}"
-   e. Reply EXACTLY: ANNOUNCE_SKIP
+   e. Clean up intermediate source file (no longer needed after rendering):
+      rm -f <local_file>
+   f. Reply EXACTLY: ANNOUNCE_SKIP
 
 3. On render failure:
    a. Send a text message to the user (in {user_language}):
@@ -270,21 +272,6 @@ Tell the user: "I've started generating your diagram. It usually takes about 30�
 
 ## Command Reference
 
-### prepare
-
-```bash
-python3 scripts/anygen.py prepare --message "..." [--file-token tk_xxx] [--input conv.json] [--save conv.json]
-```
-
-| Parameter | Description |
-|-----------|-------------|
-| --message, -m | User message text |
-| --file | File path to auto-upload and attach (repeatable) |
-| --file-token | File token from prior upload (repeatable) |
-| --input | Load conversation from JSON file |
-| --save | Save conversation state to JSON file |
-| --stdin | Read message from stdin |
-
 ### create
 
 ```bash
@@ -307,6 +294,21 @@ python3 scripts/anygen.py upload --file ./document.pdf
 ```
 
 Returns a `file_token`. Max 50MB. Tokens are persistent and reusable.
+
+### prepare
+
+```bash
+python3 scripts/anygen.py prepare --message "..." [--file-token tk_xxx] [--input conv.json] [--save conv.json]
+```
+
+| Parameter | Description |
+|-----------|-------------|
+| --message, -m | User message text |
+| --file | File path to auto-upload and attach (repeatable) |
+| --file-token | File token from prior upload (repeatable) |
+| --input | Load conversation from JSON file |
+| --save | Save conversation state to JSON file |
+| --stdin | Read message from stdin |
 
 ### poll
 
