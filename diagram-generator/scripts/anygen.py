@@ -16,13 +16,15 @@ Usage:
 """
 
 import argparse
-import base64
 import json
-import os
 import sys
 import time
 from datetime import datetime
 from pathlib import Path
+
+from io import BytesIO
+from auth import load_config, save_config, get_api_key, CONFIG_FILE, ENV_API_KEY
+from fileutil import validate_file, encode_file, read_file_bytes, read_json, write_json, write_bytes
 
 try:
     import requests
@@ -35,46 +37,8 @@ API_BASE = "https://www.anygen.io"
 POLL_INTERVAL = 3  # seconds
 MAX_POLL_TIME = 180  # 3 minutes
 OPENCLAW_WORKSPACE = Path.home() / ".openclaw" / "workspace"
-CONFIG_DIR = Path.home() / ".config" / "anygen"
-CONFIG_FILE = CONFIG_DIR / "config.json"
-ENV_API_KEY = "ANYGEN_API_KEY"
 
 
-
-def load_config():
-    """Load configuration from file."""
-    if not CONFIG_FILE.exists():
-        return {}
-    try:
-        with open(CONFIG_FILE, "r") as f:
-            return json.load(f)
-    except (json.JSONDecodeError, IOError):
-        return {}
-
-
-def save_config(config):
-    """Save configuration to file."""
-    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-    with open(CONFIG_FILE, "w") as f:
-        json.dump(config, f, indent=2)
-    # Set file permissions to owner read/write only (600)
-    CONFIG_FILE.chmod(0o600)
-
-
-def get_api_key(args_api_key=None):
-    """Get API key with priority: command line > env var > config file."""
-    # 1. Command line argument
-    if args_api_key:
-        return args_api_key
-
-    # 2. Environment variable
-    env_key = os.environ.get(ENV_API_KEY)
-    if env_key:
-        return env_key
-
-    # 3. Config file
-    config = load_config()
-    return config.get("api_key")
 
 
 def log_info(msg):
@@ -123,65 +87,35 @@ def make_auth_token(api_key):
     return api_key if api_key.startswith("Bearer ") else f"Bearer {api_key}"
 
 
-def encode_file(file_path):
-    """Encode file to base64."""
-    path = Path(file_path)
-    if not path.exists():
-        raise FileNotFoundError(f"File not found: {file_path}")
-
-    with open(path, "rb") as f:
-        content = f.read()
-
-    # Determine MIME type
-    suffix = path.suffix.lower()
-    mime_types = {
-        ".pdf": "application/pdf",
-        ".png": "image/png",
-        ".jpg": "image/jpeg",
-        ".jpeg": "image/jpeg",
-        ".gif": "image/gif",
-        ".txt": "text/plain",
-        ".doc": "application/msword",
-        ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        ".ppt": "application/vnd.ms-powerpoint",
-        ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-    }
-    mime_type = mime_types.get(suffix, "application/octet-stream")
-
-    return {
-        "file_name": path.name,
-        "file_type": mime_type,
-        "file_data": base64.b64encode(content).decode("utf-8")
-    }
-
 
 # ============ Upload Command ============
 
 def upload_file(api_key, file_path, extra_headers=None):
     """Upload a file via multipart/form-data, returns file_token."""
-    path = Path(file_path)
-    if not path.exists():
-        log_error(f"File not found: {file_path}")
+    try:
+        filename, content, size = read_file_bytes(file_path)
+    except ValueError as e:
+        log_error(str(e))
         return None
 
     auth_token = make_auth_token(api_key)
-    log_info(f"Uploading file: {path.name} ({path.stat().st_size} bytes)")
+    log_info(f"Uploading file: {filename} ({size} bytes)")
 
     headers = {"Authorization": auth_token}
     if extra_headers:
         headers.update(extra_headers)
 
     try:
-        with open(path, "rb") as f:
-            files = {"file": (path.name, f)}
-            data = {"filename": path.name}
-            response = requests.post(
-                f"{API_BASE}/v1/openapi/files/upload",
-                files=files,
-                data=data,
-                headers=headers,
-                timeout=60
-            )
+        files = {"file": (filename, BytesIO(content))}
+        data = {"filename": filename}
+        response = requests.post(
+            f"{API_BASE}/v1/openapi/files/upload",
+            files=files,
+            data=data,
+            headers=headers,
+            timeout=60,
+            allow_redirects=False,
+        )
 
         log_request_id(response)
         log_info(f"Response status: {response.status_code}")
@@ -233,8 +167,9 @@ def prepare_task(api_key, messages, file_tokens=None, extra_headers=None):
             f"{API_BASE}/v1/openapi/tasks/prepare",
             json=body,
             headers=headers,
-            timeout=120
-        )
+            timeout=120,
+                allow_redirects=False,
+            )
 
         log_request_id(response)
         if response.status_code != 200:
@@ -266,8 +201,7 @@ def run_prepare_interactive(api_key, initial_message, file_tokens=None,
     # Load existing conversation from file
     if input_file:
         try:
-            with open(input_file, "r") as f:
-                data = json.load(f)
+            data = read_json(input_file)
             messages = data.get("messages", [])
             loaded_file_tokens = set(data.get("file_tokens", []))
             if loaded_file_tokens:
@@ -343,8 +277,7 @@ def run_prepare_interactive(api_key, initial_message, file_tokens=None,
             "suggested_task_params": suggested,
         }
         try:
-            with open(save_file, "w") as f:
-                json.dump(save_data, f, indent=2, ensure_ascii=False)
+            write_json(save_file, save_data)
             log_info(f"Conversation saved to: {save_file}")
         except IOError as e:
             log_error(f"Failed to save conversation: {e}")
@@ -398,7 +331,7 @@ def create_task(api_key, operation, prompt, language=None, slide_count=None,
             try:
                 encoded_files.append(encode_file(file_path))
                 log_info(f"Attachment added: {file_path}")
-            except FileNotFoundError as e:
+            except (FileNotFoundError, ValueError) as e:
                 log_error(str(e))
                 return None
         if encoded_files:
@@ -421,8 +354,9 @@ def create_task(api_key, operation, prompt, language=None, slide_count=None,
             f"{API_BASE}/v1/openapi/tasks",
             json=body,
             headers=headers,
-            timeout=30
-        )
+            timeout=30,
+                allow_redirects=False,
+            )
         log_request_id(response)
         log_info(f"Response status: {response.status_code}")
         log_info(f"Response body: {response.text[:500] if response.text else 'Empty'}")
@@ -461,8 +395,9 @@ def query_task(api_key, task_id, extra_headers=None):
         response = requests.get(
             f"{API_BASE}/v1/openapi/tasks/{task_id}",
             headers=headers,
-            timeout=30
-        )
+            timeout=30,
+                allow_redirects=False,
+            )
         log_request_id(response)
         return response.json()
     except requests.RequestException as e:
@@ -481,7 +416,9 @@ def _download_to_local(file_url, file_name, output_dir):
     log_info("Downloading file...")
 
     try:
-        response = requests.get(file_url, timeout=120)
+        response = requests.get(file_url, timeout=120,
+                allow_redirects=False,
+            )
         response.raise_for_status()
     except requests.RequestException as e:
         log_error(f"Download failed: {e}")
@@ -499,8 +436,7 @@ def _download_to_local(file_url, file_name, output_dir):
         while file_path.exists():
             file_path = output_path / f"{stem}_{counter}{suffix}"
             counter += 1
-    with open(file_path, "wb") as f:
-        f.write(response.content)
+    write_bytes(file_path, response.content)
 
     log_success(f"File saved: {file_path}")
     return str(file_path)
@@ -646,6 +582,7 @@ def send_message(api_key, task_id, content, files=None, extra_headers=None):
             json=body,
             headers=headers,
             timeout=30,
+            allow_redirects=False,
         )
         log_request_id(response)
         if response.status_code != 200:
@@ -687,6 +624,7 @@ def get_messages(api_key, task_id, limit=10, cursor=None, extra_headers=None):
             headers=headers,
             params=params,
             timeout=30,
+            allow_redirects=False,
         )
         log_request_id(response)
         if response.status_code != 200:
