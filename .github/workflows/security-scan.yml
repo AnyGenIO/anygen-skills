@@ -1,0 +1,198 @@
+name: Skill Security Scan
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '*/SKILL.md'
+      - '*/scripts/**'
+      - 'publish.mjs'
+  pull_request:
+    paths:
+      - '*/SKILL.md'
+      - '*/scripts/**'
+      - 'publish.mjs'
+  workflow_dispatch:
+    inputs:
+      skill:
+        description: 'Skill to scan (leave empty for all)'
+        required: false
+        default: ''
+      static_only:
+        description: 'Static scan only (no LLM)'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  static-scan:
+    name: Static Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run static scan
+        run: node publish.mjs scan --static 2>&1 | tee static-scan.log
+
+      - name: Upload static scan log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: static-scan-log
+          path: static-scan.log
+
+  llm-scan:
+    name: LLM Security Evaluation
+    runs-on: ubuntu-latest
+    needs: static-scan
+    if: ${{ !inputs.static_only }}
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Check OPENAI_API_KEY
+        run: |
+          if [ -z "$OPENAI_API_KEY" ]; then
+            echo "::warning::OPENAI_API_KEY not configured. Skipping LLM evaluation."
+            echo "SKIP_LLM=true" >> "$GITHUB_ENV"
+          fi
+
+      - name: Determine scan target
+        id: target
+        run: |
+          SKILL="${{ inputs.skill }}"
+          if [ -n "$SKILL" ]; then
+            echo "args=$SKILL" >> "$GITHUB_OUTPUT"
+          else
+            echo "args=--all" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run LLM security scan
+        if: env.SKIP_LLM != 'true'
+        id: scan
+        run: |
+          node publish.mjs scan ${{ steps.target.outputs.args }} 2>&1 | tee llm-scan.log
+
+          # Check results for malicious verdicts
+          if ls scan-results/*.json 1>/dev/null 2>&1; then
+            MALICIOUS=$(node -e "
+              const fs = require('fs');
+              const files = fs.readdirSync('scan-results').filter(f => f.endsWith('.json'));
+              const results = files.map(f => JSON.parse(fs.readFileSync('scan-results/' + f)));
+              const mal = results.filter(r => r.llmResult?.verdict === 'malicious');
+              if (mal.length > 0) {
+                console.log('FOUND');
+                mal.forEach(r => console.error('  MALICIOUS: ' + r.skill + ' — ' + (r.llmResult?.summary || '')));
+              }
+            " 2>&1)
+
+            if echo "$MALICIOUS" | grep -q "FOUND"; then
+              echo "has_malicious=true" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+
+      - name: Upload scan results
+        if: always() && env.SKIP_LLM != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-scan-results
+          path: |
+            llm-scan.log
+            scan-results/*.json
+
+      - name: Post PR comment
+        if: github.event_name == 'pull_request' && env.SKIP_LLM != 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            const scanDir = 'scan-results';
+            if (!fs.existsSync(scanDir)) return;
+
+            const files = fs.readdirSync(scanDir).filter(f => f.endsWith('.json'));
+            if (files.length === 0) return;
+
+            const results = files.map(f => {
+              const data = JSON.parse(fs.readFileSync(path.join(scanDir, f)));
+              return data;
+            });
+
+            const verdictEmoji = { benign: '✅', suspicious: '⚠️', malicious: '🚨' };
+            const staticEmoji = { clean: '✅', suspicious: '⚠️', malicious: '🚨' };
+
+            let body = '## 🔒 Skill Security Scan Results\n\n';
+            body += '| Skill | Static Scan | LLM Verdict | Confidence | Summary |\n';
+            body += '|-------|------------|-------------|------------|----------|\n';
+
+            for (const r of results) {
+              const sv = r.staticScan?.status || '—';
+              const lv = r.llmResult?.verdict || '—';
+              const conf = r.llmResult?.confidence || '—';
+              const summary = r.llmResult?.summary || '';
+              const se = staticEmoji[sv] || '❓';
+              const le = verdictEmoji[lv] || '❓';
+              body += `| ${r.skill} | ${se} ${sv} | ${le} ${lv} | ${conf} | ${summary.slice(0, 80)} |\n`;
+            }
+
+            const malicious = results.filter(r => r.llmResult?.verdict === 'malicious');
+            if (malicious.length > 0) {
+              body += '\n### 🚨 Malicious Skills Detected\n\n';
+              for (const r of malicious) {
+                body += `**${r.skill}**: ${r.llmResult?.summary || ''}\n\n`;
+                const dims = r.llmResult?.dimensions || [];
+                const concerns = dims.filter(d => d.status === 'concern');
+                if (concerns.length > 0) {
+                  for (const d of concerns) {
+                    body += `- ❌ **${d.label}**: ${d.detail}\n`;
+                  }
+                  body += '\n';
+                }
+              }
+            }
+
+            body += '\n---\n*Generated by publish.mjs*';
+
+            // Find and update existing comment or create new
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const existing = comments.find(c =>
+              c.user.type === 'Bot' && c.body.includes('Skill Security Scan Results')
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+      - name: Fail on malicious verdict
+        if: steps.scan.outputs.has_malicious == 'true'
+        run: |
+          echo "::error::One or more skills received a MALICIOUS verdict from LLM evaluation."
+          echo "Check the scan results artifact for details."
+          exit 1
