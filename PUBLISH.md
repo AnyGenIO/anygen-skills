@@ -5,6 +5,7 @@
 ```bash
 node publish.mjs scan                      # 安全扫描（全部）
 node publish.mjs scan --static             # 仅静态扫描
+node publish.mjs scan --translate          # 扫描并翻译结果为中文
 node publish.mjs deploy                    # 部署到本地 OpenClaw
 node publish.mjs deploy --target claude    # 部署到本地 Claude Code
 node publish.mjs publish                   # 发布全部到 ClawHub（自动 patch+1）
@@ -45,6 +46,9 @@ node publish.mjs scan --static
 
 # 完整扫描（需要 OPENAI_API_KEY）
 OPENAI_API_KEY=sk-xxx node publish.mjs scan
+
+# 扫描并翻译结果为中文
+node publish.mjs scan --translate
 
 # 只扫描指定 skill
 node publish.mjs scan slide-generator data-analysis

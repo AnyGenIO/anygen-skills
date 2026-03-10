@@ -3,7 +3,7 @@
  * AnyGen Skills — scan / deploy / publish
  *
  * Usage:
- *   node publish.mjs scan   [--static] [skill...]               安全扫描
+ *   node publish.mjs scan   [--static] [--translate] [skill...]  安全扫描
  *   node publish.mjs deploy [--target openclaw|claude|all] [skill...]  部署到本地 agent
  *   node publish.mjs publish [--method cli|api] [skill...]        发布到 ClawHub (自动版本)
  *   node publish.mjs run    [--target ...] [skill...]            完整流程
