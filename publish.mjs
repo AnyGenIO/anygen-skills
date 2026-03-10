@@ -1177,6 +1177,7 @@ Usage:
 
 Options:
   --static          只做静态扫描（不需要 API Key）
+  --translate       扫描后将结果翻译为中文（默认关闭）
   --target <agent>  部署目标 (默认: openclaw)
                     openclaw  只部署到 OpenClaw
                     claude    只部署到 Claude Code
@@ -1189,6 +1190,7 @@ Options:
 Examples:
   node publish.mjs scan                                         扫描全部
   node publish.mjs scan --static                                只做静态扫描
+  node publish.mjs scan --translate                             扫描并翻译结果
   node publish.mjs scan data-analysis                           扫描单个
   node publish.mjs deploy                                       部署全部到 OpenClaw
   node publish.mjs deploy --target claude                       部署全部到 Claude Code
@@ -1221,8 +1223,9 @@ switch (cmd) {
     break
   case 'scan': {
     const isStatic = rest.includes('--static')
+    const translate = rest.includes('--translate')
     const skillArgs = rest.filter(a => !a.startsWith('-'))
-    await cmdScan(resolveSkills(skillArgs), isStatic)
+    await cmdScan(resolveSkills(skillArgs), isStatic, translate)
     break
   }
   case 'deploy': {
