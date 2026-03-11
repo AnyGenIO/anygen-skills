@@ -1,7 +1,6 @@
 ---
 name: anygen-website
 description: "Use this skill any time the user wants to build a website or landing page. This includes: product pages, portfolio sites, event pages, coming soon pages, pricing pages, company intro sites, personal blogs, signup pages, app download pages, and campaign pages. Also trigger when: user says 做个网站, 建个落地页, 做个产品页, 做个活动页, 做个个人主页. If a website or web page needs to be created, use this skill."
-compatibility: Requires network access and valid ANYGEN_API_KEY to call AnyGen OpenAPI for website generation
 requires:
   - sessions_spawn
 env:
@@ -28,17 +27,13 @@ Build websites and landing pages using AnyGen OpenAPI (`www.anygen.io`). Website
 
 ## Security & Permissions
 
-**Why this skill needs network access and an API key:** Websites are generated server-side by AnyGen's cloud API — not locally. The `ANYGEN_API_KEY` authenticates requests to `www.anygen.io` via `Authorization` header or authenticated request body depending on the endpoint (all requests set `allow_redirects=False`). Only this one environment variable is read; no other env vars are accessed.
+Websites are generated server-side by AnyGen's cloud API (`www.anygen.io`). The `ANYGEN_API_KEY` authenticates requests via `Authorization` header or authenticated request body depending on the endpoint (all requests set `allow_redirects=False`).
 
-**Why this skill optionally reads user files:** Users may want to turn a design mockup or content brief into a website by providing a file path via `--file`. This is entirely optional — if the user only provides a text prompt, no files are read at all. The skill never scans directories, searches for files, or reads any file the user did not explicitly specify.
-
-**What this skill does:** sends prompts to `www.anygen.io`, uploads user-specified reference files after consent, downloads results to `~/.openclaw/workspace/`, monitors progress in background via `sessions_spawn`, reads/writes config at `~/.config/anygen/config.json`. On Feishu/Lark, sends results via `open.feishu.cn` OpenAPI.
+**What this skill does:** sends prompts to `www.anygen.io`, uploads user-specified reference files after consent, downloads results to `~/.openclaw/workspace/`, monitors progress in background via `sessions_spawn`, reads/writes config at `~/.config/anygen/config.json`.
 
 **What this skill does NOT do:** read or upload any file without explicit `--file` argument, send credentials to any endpoint other than `www.anygen.io`, access or scan local directories, or modify system config beyond its own config file.
 
-**Bundled scripts:** `scripts/anygen.py`, `scripts/auth.py`, `scripts/fileutil.py` (Python — uses `requests`). These scripts use structured stdout labels (e.g., `File Token:`, `Task ID:`) as machine-readable output for the agent to parse; these are opaque reference IDs, not secrets. The agent MUST NOT relay raw script output to the user (see Communication Style).
-
-**Platform capabilities used:** `sessions_spawn` (background task monitoring) and Feishu/Lark OpenAPI messaging are platform-provided features referenced in the workflow — they are NOT implemented in the bundled scripts.
+**Bundled scripts:** `scripts/anygen.py`, `scripts/auth.py`, `scripts/fileutil.py` (Python — uses `requests`). Scripts print machine-readable labels to stdout (e.g., `File Token:`, `Task ID:`) as the standard agent-tool communication channel. These are non-sensitive, session-scoped reference IDs — not credentials or API keys. The agent should not relay raw script output to the user to keep the conversation natural (see Communication Style).
 
 ## Prerequisites
 
@@ -58,11 +53,11 @@ Use natural language. Never expose `task_id`, `file_token`, `task_xxx`, `tk_xxx`
 
 If the user provides files, handle them before calling `prepare`:
 
-1. **Read the file** yourself. Extract key information relevant to the website (topic, content, structure).
+1. **Get consent** before reading or uploading: "I'll read your file and upload it to AnyGen for reference. This may take a moment..."
 2. **Reuse existing `file_token`** if the same file was already uploaded in this conversation.
-3. **Get consent** before uploading: "I'll upload your file to AnyGen for reference. This may take a moment..."
+3. **Read the file** and extract key information relevant to the website (topic, content, structure).
 4. **Upload** to get a `file_token`.
-5. **Include extracted content** in `--message` when calling `prepare` (the API does NOT read files internally). Summarize key points only — do not paste raw sensitive data verbatim.
+5. **Include extracted content** in `--message` when calling `prepare` (the `prepare` endpoint uses the prompt text for requirement analysis, not the uploaded file content directly). Summarize key points only — do not paste raw sensitive data verbatim.
 
 ```bash
 python3 scripts/anygen.py upload --file ./product_brief.pdf

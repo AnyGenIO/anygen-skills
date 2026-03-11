@@ -1,7 +1,6 @@
 ---
 name: anygen-diagram
 description: "Use this skill any time the user wants to create diagrams, flowcharts, or visual structures. This includes: architecture diagrams, mind maps, org charts, user journey maps, system design diagrams, ER diagrams, sequence diagrams, process flows, decision trees, network topologies, class diagrams, Gantt charts, SWOT analysis diagrams, wireframes, and sitemaps. Also trigger when: user says 画个流程图, 做个架构图, 思维导图, 组织架构图, 用户旅程图, 系统设计图, 甘特图. If a diagram or visual structure needs to be drawn, use this skill."
-compatibility: Requires network access and valid ANYGEN_API_KEY to call AnyGen OpenAPI for diagram generation
 requires:
   - sessions_spawn
 env:
@@ -11,8 +10,16 @@ metadata:
     requires:
       bins:
         - python3
+        - node
       env:
         - ANYGEN_API_KEY
+    install:
+      - id: npm-playwright
+        kind: node
+        package: playwright
+      - id: npm-tsx
+        kind: node
+        package: tsx
 ---
 
 # AnyGen AI Diagram Generator
@@ -32,21 +39,13 @@ Generate diagrams and visual charts using AnyGen OpenAPI (`www.anygen.io`). Diag
 
 ## Security & Permissions
 
-**Why this skill needs network access and an API key:** Diagrams are generated server-side by AnyGen's cloud API — not locally. The `ANYGEN_API_KEY` authenticates requests to `www.anygen.io` via `Authorization` header or authenticated request body depending on the endpoint (all requests set `allow_redirects=False`). Only this one environment variable is read; no other env vars are accessed.
+Diagrams are generated server-side by AnyGen's cloud API (`www.anygen.io`). The `ANYGEN_API_KEY` authenticates requests via `Authorization` header or authenticated request body depending on the endpoint (all requests set `allow_redirects=False`).
 
-**Why this skill optionally reads user files:** Users may want to turn an existing spec or document into a visual diagram by providing a file path via `--file`. This is entirely optional — if the user only provides a text prompt, no files are read at all. The skill never scans directories, searches for files, or reads any file the user did not explicitly specify.
-
-**What this skill does:** sends prompts to `www.anygen.io`, uploads user-specified reference files after consent, downloads diagram files to `~/.openclaw/workspace/`, monitors progress in background via `sessions_spawn`, reads/writes config at `~/.config/anygen/config.json`. On Feishu/Lark, sends results via `open.feishu.cn` OpenAPI.
+**What this skill does:** sends prompts to `www.anygen.io`, uploads user-specified reference files after consent, downloads diagram files to `~/.openclaw/workspace/`, renders diagram source (Draw.io XML / Excalidraw JSON) to PNG locally using Playwright and Chromium, monitors progress in background via `sessions_spawn`, reads/writes config at `~/.config/anygen/config.json`. During rendering, the browser loads diagram libraries from public CDNs (`esm.sh`, `viewer.diagrams.net`, `fonts.googleapis.com`).
 
 **What this skill does NOT do:** read or upload any file without explicit `--file` argument, send credentials to any endpoint other than `www.anygen.io`, access or scan local directories, or modify system config beyond its own config file.
 
-**Bundled scripts:** `scripts/anygen.py`, `scripts/auth.py`, `scripts/fileutil.py` (Python — uses `requests`). These scripts use structured stdout labels (e.g., `File Token:`, `Task ID:`) as machine-readable output for the agent to parse; these are opaque reference IDs, not secrets. The agent MUST NOT relay raw script output to the user (see Communication Style).
-
-**Platform capabilities used:** `sessions_spawn` (background task monitoring) and Feishu/Lark OpenAPI messaging are platform-provided features referenced in the workflow — they are NOT implemented in the bundled scripts.
-
-**Auto-install behavior:** On first render, `render-diagram.sh` runs `npm install` to fetch Puppeteer and downloads Chromium (~200MB). This requires network access to `registry.npmjs.org` and `storage.googleapis.com`.
-
-**Additional scripts:** `scripts/render-diagram.sh` (Bash), `scripts/diagram-to-image.ts` (TypeScript).
+**Bundled scripts:** `scripts/anygen.py`, `scripts/auth.py`, `scripts/fileutil.py` (Python — uses `requests`), `scripts/render-diagram.sh` (Bash), `scripts/diagram-to-image.ts` (TypeScript). Scripts print machine-readable labels to stdout (e.g., `File Token:`, `Task ID:`) as the standard agent-tool communication channel. These are non-sensitive, session-scoped reference IDs — not credentials or API keys. The agent should not relay raw script output to the user to keep the conversation natural (see Communication Style).
 
 ## Prerequisites
 
@@ -67,11 +66,11 @@ Use natural language. Never expose `task_id`, `file_token`, `task_xxx`, `tk_xxx`
 
 If the user provides files, handle them before calling `prepare`:
 
-1. **Read the file** yourself. Extract key information relevant to the diagram (components, relationships, structure).
+1. **Get consent** before reading or uploading: "I'll read your file and upload it to AnyGen for reference. This may take a moment..."
 2. **Reuse existing `file_token`** if the same file was already uploaded in this conversation.
-3. **Get consent** before uploading: "I'll upload your file to AnyGen for reference. This may take a moment..."
+3. **Read the file** and extract key information relevant to the diagram (components, relationships, structure).
 4. **Upload** to get a `file_token`.
-5. **Include extracted content** in `--message` when calling `prepare` (the API does NOT read files internally). Summarize key points only — do not paste raw sensitive data verbatim.
+5. **Include extracted content** in `--message` when calling `prepare` (the `prepare` endpoint uses the prompt text for requirement analysis, not the uploaded file content directly). Summarize key points only — do not paste raw sensitive data verbatim.
 
 ```bash
 python3 scripts/anygen.py upload --file ./design_doc.pdf

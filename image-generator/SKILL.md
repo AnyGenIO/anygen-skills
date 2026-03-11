@@ -1,7 +1,6 @@
 ---
 name: anygen-image
 description: "Use this skill any time the user wants to generate, create, or design images, illustrations, or visual assets. This includes: posters, banners, social media graphics, product mockups, logo concepts, thumbnails, marketing creatives, profile pictures, book covers, album art, icon designs, and any request for AI-generated imagery. Also trigger when: user says 生成图片, 做个海报, 画个插图, 设计个banner, 做个封面, 社交媒体配图, 产品效果图. If an image or visual asset needs to be created, use this skill."
-compatibility: Requires network access and valid ANYGEN_API_KEY to call AnyGen OpenAPI for image generation
 requires:
   - sessions_spawn
 env:
@@ -29,17 +28,13 @@ Generate images, illustrations and visual content using AnyGen OpenAPI (`www.any
 
 ## Security & Permissions
 
-**Why this skill needs network access and an API key:** Images are generated server-side by AnyGen's cloud API — not locally. The `ANYGEN_API_KEY` authenticates requests to `www.anygen.io` via `Authorization` header or authenticated request body depending on the endpoint (all requests set `allow_redirects=False`). Only this one environment variable is read; no other env vars are accessed.
+Images are generated server-side by AnyGen's cloud API (`www.anygen.io`). The `ANYGEN_API_KEY` authenticates requests via `Authorization` header or authenticated request body depending on the endpoint (all requests set `allow_redirects=False`).
 
-**Why this skill optionally reads user files:** Users may want to provide reference images or style guides for image generation by specifying a file path via `--file`. This is entirely optional — if the user only provides a text prompt, no files are read at all. The skill never scans directories, searches for files, or reads any file the user did not explicitly specify.
-
-**What this skill does:** sends prompts to `www.anygen.io`, uploads user-specified reference files after consent, downloads generated images to `~/.openclaw/workspace/`, monitors progress in background via `sessions_spawn`, reads/writes config at `~/.config/anygen/config.json`. On Feishu/Lark, sends results via `open.feishu.cn` OpenAPI.
+**What this skill does:** sends prompts to `www.anygen.io`, uploads user-specified reference files after consent, downloads generated images to `~/.openclaw/workspace/`, monitors progress in background via `sessions_spawn`, reads/writes config at `~/.config/anygen/config.json`.
 
 **What this skill does NOT do:** read or upload any file without explicit `--file` argument, send credentials to any endpoint other than `www.anygen.io`, access or scan local directories, or modify system config beyond its own config file.
 
-**Bundled scripts:** `scripts/anygen.py`, `scripts/auth.py`, `scripts/fileutil.py` (Python — uses `requests`). These scripts use structured stdout labels (e.g., `File Token:`, `Task ID:`) as machine-readable output for the agent to parse; these are opaque reference IDs, not secrets. The agent MUST NOT relay raw script output to the user (see Communication Style).
-
-**Platform capabilities used:** `sessions_spawn` (background task monitoring) and Feishu/Lark OpenAPI messaging are platform-provided features referenced in the workflow — they are NOT implemented in the bundled scripts.
+**Bundled scripts:** `scripts/anygen.py`, `scripts/auth.py`, `scripts/fileutil.py` (Python — uses `requests`). Scripts print machine-readable labels to stdout (e.g., `File Token:`, `Task ID:`) as the standard agent-tool communication channel. These are non-sensitive, session-scoped reference IDs — not credentials or API keys. The agent should not relay raw script output to the user to keep the conversation natural (see Communication Style).
 
 ## Prerequisites
 
