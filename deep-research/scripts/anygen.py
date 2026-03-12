@@ -263,7 +263,6 @@ def run_prepare_interactive(api_key, initial_message, file_tokens=None,
     if is_ready and suggested:
         print()
         log_success("Requirement analysis complete! Suggested task params:")
-        print(f"  Operation: {suggested.get('operation', 'N/A')}")
         print(f"  Prompt:")
         print(suggested.get('prompt', ''))
         if suggested.get("file_tokens"):
