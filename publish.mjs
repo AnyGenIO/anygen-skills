@@ -1196,6 +1196,17 @@ async function cmdPublish(skills, method = 'cli', fixedVersion = null) {
       err('clawhub CLI not found. Install: npm i -g clawhub')
       process.exit(1)
     }
+    try {
+      const whoami = execSync('clawhub whoami', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim()
+      if (!whoami.includes('LogicTortoise')) {
+        err(`clawhub identity mismatch: expected LogicTortoise, got: ${whoami}`)
+        process.exit(1)
+      }
+      ok('clawhub identity verified: LogicTortoise')
+    } catch {
+      err('clawhub whoami failed. Run `clawhub login` first.')
+      process.exit(1)
+    }
   }
 
   if (method === 'api') {
