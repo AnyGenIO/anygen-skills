@@ -177,6 +177,74 @@ If your sessions API uses different parameter names (e.g., `timeout`, `maxDurati
 
 ---
 
+**Constructing Send Instructions for Subagent (MANDATORY before spawning):**
+
+The subagent has NO conversation context — it cannot know what IM platform the current
+channel belongs to or how to send images/files. You MUST construct `{send_image_instructions}`
+based on the current channel's IM platform and embed it verbatim in the subagent prompt.
+The subagent will follow these instructions exactly without any branching logic.
+
+**Construct `{send_image_instructions}` according to the current channel's platform:**
+
+- **Feishu** channel — set `{send_image_instructions}` to:
+  ```
+  To send an image to the user, use this two-step process:
+  Step 1 — Upload image:
+    POST https://open.feishu.cn/open-apis/im/v1/images
+    curl -X POST 'https://open.feishu.cn/open-apis/im/v1/images' \
+      -H 'Authorization: Bearer <tenant_access_token>' \
+      -F 'image_type=message' \
+      -F 'image=@<image_file_path>'
+    This returns an image_key.
+  Step 2 — Send image message:
+    POST https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=chat_id
+    Request body:
+    {
+      "receive_id": "<chat_id>",
+      "msg_type": "image",
+      "content": "{\"image_key\":\"<image_key>\"}"
+    }
+  ```
+
+- **Lark** channel — same two-step process as Feishu above, but replace all
+  `open.feishu.cn` with `open.larksuite.com` in the URLs.
+
+- **Other platforms** — set `{send_image_instructions}` to:
+  ```
+  To send an image to the user, use the message tool with filePath pointing to the image file.
+  ```
+
+Also construct `{send_file_instructions}` for the same platform:
+
+- **Feishu** channel — set `{send_file_instructions}` to:
+  ```
+  To send a file to the user, use this two-step process:
+  Step 1 — Upload file:
+    POST https://open.feishu.cn/open-apis/im/v1/files
+    curl -X POST 'https://open.feishu.cn/open-apis/im/v1/files' \
+      -H 'Authorization: Bearer <tenant_access_token>' \
+      -F 'file_type=ppt' \
+      -F 'file=@<file_path>' \
+      -F 'file_name=<file_name>'
+    This returns a file_key. (Note: use file_type="ppt", not "pptx".)
+  Step 2 — Send file message:
+    POST https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=chat_id
+    Request body:
+    {
+      "receive_id": "<chat_id>",
+      "msg_type": "file",
+      "content": "{\"file_key\":\"<file_key>\"}"
+    }
+  ```
+
+- **Lark** channel — same as Feishu above, but replace all `open.feishu.cn`
+  with `open.larksuite.com`.
+
+- **Other platforms** — set `{send_file_instructions}` to:
+  ```
+  To send a file to the user, use the message tool with filePath pointing to the file.
+  ```
+
 **Subagent prompt** (it has NO conversation context):
 
 ```
@@ -188,6 +256,9 @@ Task URL: {task_url}
 Script: {script_path}
 Thumbnail Output: {thumbnail_output_dir}
 User Language: {user_language}
+
+How to send an image to the user:
+{send_image_instructions}
 
 IMPORTANT: This monitoring task may take up to 20 minutes. Ensure your execution timeout is at least 25 minutes.
 
@@ -209,22 +280,8 @@ Your job:
 2. On success:
    a. Download thumbnail:
       python3 {script_path} thumbnail --task-id {task_id} --output {thumbnail_output_dir}
-   b. Send the thumbnail preview image to the user. Choose the correct method:
-      - Feishu/Lark: Two-step process via OpenAPI —
-        Step 1 (Upload image): POST https://open.feishu.cn/open-apis/im/v1/images
-          curl -X POST 'https://open.feishu.cn/open-apis/im/v1/images' \
-            -H 'Authorization: Bearer <tenant_access_token>' \
-            -F 'image_type=message' \
-            -F 'image=@{thumbnail_output_dir}/thumbnail.png'
-          This returns an image_key.
-        Step 2 (Send image message): POST https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=chat_id
-          Request body:
-          {
-            "receive_id": "<chat_id>",
-            "msg_type": "image",
-            "content": "{\"image_key\":\"<image_key>\"}"
-          }
-      - Other platforms: Send via message tool with filePath.
+   b. Send the thumbnail preview image to the user by following the
+      "How to send an image to the user" instructions above.
       The user must see the image inline — not a path or link.
    c. Send a text message to the user (in {user_language}, natural tone):
       "Your slides are ready! You can view them here: {task_url}
@@ -260,31 +317,14 @@ Do NOT wait for the background monitor to finish — continue the conversation i
 
 #### When the User Requests the PPT File
 
-Download, then send via the appropriate method for your IM environment:
+Download, then send the file by following the `{send_file_instructions}` you constructed
+earlier (same platform detection as above):
 
 ```bash
 python3 scripts/anygen.py download --task-id {task_id} --output ~/.openclaw/workspace/
 ```
 
-- **Feishu/Lark**: Two-step process via OpenAPI —
-  Step 1 (Upload file): `POST https://open.feishu.cn/open-apis/im/v1/files`
-    ```
-    curl -X POST 'https://open.feishu.cn/open-apis/im/v1/files' \
-      -H 'Authorization: Bearer <tenant_access_token>' \
-      -F 'file_type=ppt' \
-      -F 'file=@~/.openclaw/workspace/output.pptx' \
-      -F 'file_name=output.pptx'
-    ```
-    This returns a `file_key`. (Note: use `file_type="ppt"`, not `"pptx"`.)
-  Step 2 (Send file message): `POST https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=chat_id`
-    ```json
-    {
-      "receive_id": "<chat_id>",
-      "msg_type": "file",
-      "content": "{\"file_key\":\"<file_key>\"}"
-    }
-    ```
-- **Other platforms**: Send via message tool with filePath.
+Follow the `{send_file_instructions}` to send `~/.openclaw/workspace/output.pptx` to the user.
 
 Follow up naturally: "Here's your PPT file! You can also edit online at [Task URL]."
 
