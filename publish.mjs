@@ -48,15 +48,15 @@ const SCAN_FILE_EXTENSIONS = new Set([
 // ─── Skill registry ─────────────────────────────────────────────────────────
 
 const SKILLS = [
-  { dir: 'data-analysis',       clawhub: 'anygen-data-analysis',       claude: 'anygen-data-analysis',       name: 'Data Analysis' },
-  { dir: 'deep-research',       clawhub: 'anygen-deep-research',       claude: 'anygen-deep-research',       name: 'Deep Research' },
-  { dir: 'diagram-generator',   clawhub: 'anygen-diagram-generator',   claude: 'anygen-diagram',             name: 'Diagram Generator' },
-  { dir: 'doc-generator',       clawhub: 'anygen-doc-generator',       claude: 'anygen-doc',                 name: 'Doc Generator' },
-  { dir: 'financial-research',  clawhub: 'anygen-financial-research',  claude: 'anygen-financial-research',  name: 'Financial Research' },
-  { dir: 'image-generator',     clawhub: 'anygen-image-generator',     claude: 'anygen-image',               name: 'Image Generator' },
-  { dir: 'slide-generator',     clawhub: 'anygen-slide-generator',     claude: 'anygen-slide',               name: 'Slide Generator' },
-  { dir: 'storybook-generator', clawhub: 'anygen-storybook-generator', claude: 'anygen-storybook',           name: 'Storybook Generator' },
-  { dir: 'website-generator',   clawhub: 'anygen-website-generator',   claude: 'anygen-website',             name: 'Website Generator' },
+  { dir: 'data-analysis',       clawhub: 'anygen-data-analysis',       claude: 'anygen-data-analysis',       name: 'Data Analysis',        desc: 'Analyze data and create charts, dashboards, and visualizations from CSV, JSON, or any structured data using AnyGen.' },
+  { dir: 'deep-research',       clawhub: 'anygen-deep-research',       claude: 'anygen-deep-research',       name: 'Deep Research',        desc: 'Generate long-form research reports on any topic — industry analysis, competitive landscape, market sizing, technology reviews, and more — powered by AnyGen.' },
+  { dir: 'diagram-generator',   clawhub: 'anygen-diagram-generator',   claude: 'anygen-diagram',             name: 'Diagram Generator',    desc: 'Create diagrams, flowcharts, architecture diagrams, mind maps, org charts, and other visual structures using AnyGen SmartDraw.' },
+  { dir: 'doc-generator',       clawhub: 'anygen-doc-generator',       claude: 'anygen-doc',                 name: 'Doc Generator',        desc: 'Generate structured documents and reports — PRDs, proposals, white papers, competitive analysis, and more — using AnyGen.' },
+  { dir: 'financial-research',  clawhub: 'anygen-financial-research',  claude: 'anygen-financial-research',  name: 'Financial Research',   desc: 'Generate earnings analysis, financial research reports, and investment summaries from SEC filings and financial data using AnyGen.' },
+  { dir: 'image-generator',     clawhub: 'anygen-image-generator',     claude: 'anygen-image',               name: 'Image Generator',      desc: 'Generate images, illustrations, posters, banners, and visual assets using AnyGen AI image generation.' },
+  { dir: 'slide-generator',     clawhub: 'anygen-slide-generator',     claude: 'anygen-slide',               name: 'Slide Generator',      desc: 'Create professional slide presentations — pitch decks, quarterly reviews, training materials, and more — using AnyGen.' },
+  { dir: 'storybook-generator', clawhub: 'anygen-storybook-generator', claude: 'anygen-storybook',           name: 'Storybook Generator',  desc: 'Create visual stories, illustrated narratives, comics, and storybook content using AnyGen.' },
+  { dir: 'website-generator',   clawhub: 'anygen-website-generator',   claude: 'anygen-website',             name: 'Website Generator',    desc: 'Build landing pages, product pages, portfolio sites, and web applications using AnyGen.' },
 ]
 
 const CLAUDE_DIR = join(process.env.HOME, '.claude', 'skills')
@@ -145,22 +145,25 @@ function listSkillFiles(dir) {
   return results
 }
 
-async function publishViaApi(slug, displayName, version, skillDir, config) {
+async function publishViaApi(slug, displayName, version, skillDir, config, description) {
   const files = listSkillFiles(skillDir)
   if (files.length === 0) throw new Error('No files found')
   if (!files.some(f => f.relPath.toLowerCase() === 'skill.md')) {
     throw new Error('SKILL.md required')
   }
 
-  const form = new FormData()
-  form.set('payload', JSON.stringify({
+  const payload = {
     slug,
     displayName,
     version,
     changelog: '',
     acceptLicenseTerms: true,
     tags: ['latest'],
-  }))
+  }
+  if (description) payload.description = description
+
+  const form = new FormData()
+  form.set('payload', JSON.stringify(payload))
 
   for (const file of files) {
     const content = readFileSync(file.fullPath)
@@ -1246,7 +1249,7 @@ async function cmdPublish(skills, method = 'cli', fixedVersion = null) {
     if (method === 'api') {
       console.log(`  ${DIM}[API] POST /api/v1/skills  slug=${p.clawhub}  version=${p.nextVer}${R}`)
     } else {
-      console.log(`  ${DIM}clawhub publish "${src}" --slug "${p.clawhub}" --version "${p.nextVer}"${R}`)
+      console.log(`  ${DIM}clawhub publish "${src}" --slug "${p.clawhub}" --version "${p.nextVer}"${p.desc ? ` --description "..."` : ''}${R}`)
     }
   }
   console.log()
@@ -1267,7 +1270,7 @@ async function cmdPublish(skills, method = 'cli', fixedVersion = null) {
     if (method === 'api') {
       try {
         const config = readClawHubConfig()
-        const result = await publishViaApi(p.clawhub, p.name, p.nextVer, src, config)
+        const result = await publishViaApi(p.clawhub, p.name, p.nextVer, src, config, p.desc)
         ok(`${p.clawhub} v${p.nextVer} published. (versionId: ${result.versionId})`)
         published++
       } catch (e) {
@@ -1275,7 +1278,8 @@ async function cmdPublish(skills, method = 'cli', fixedVersion = null) {
         failed++
       }
     } else {
-      const result = run(`clawhub publish "${src}" --slug "${p.clawhub}" --version "${p.nextVer}"`)
+      const descFlag = p.desc ? ` --description "${p.desc.replace(/"/g, '\\"')}"` : ''
+      const result = run(`clawhub publish "${src}" --slug "${p.clawhub}" --version "${p.nextVer}"${descFlag}`)
       if (result !== null) {
         ok(`${p.clawhub} v${p.nextVer} published.`)
         published++
